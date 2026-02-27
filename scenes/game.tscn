@@ -1,0 +1,195 @@
+[gd_scene load_steps=9 format=3 uid="uid://b47ts00x6u"]
+
+[ext_resource type="PackedScene" uid="uid://c5q8y2xj3vwqk" path="res://scenes/player/player.tscn" id="1_4h8n2"]
+[ext_resource type="PackedScene" uid="uid://bh7m3n4p8qwxr" path="res://scenes/ui/hud.tscn" id="2_3j7k5"]
+[ext_resource type="Script" path="res://scripts/systems/enemy_spawner.gd" id="3_enemy"]
+[ext_resource type="PackedScene" uid="uid://c8x5y9z2qwert" path="res://scenes/ui/upgrade_panel.tscn" id="4_upgrade"]
+[ext_resource type="Script" path="res://scripts/systems/upgrade_generator.gd" id="5_generator"]
+[ext_resource type="Script" path="res://scripts/systems/upgrade_applier.gd" id="6_applier"]
+[ext_resource type="PackedScene" uid="uid://d8x9y2z3qwert" path="res://scenes/ui/game_over_screen.tscn" id="7_gameover"]
+[ext_resource type="PackedScene" uid="uid://e9a1b3c4qwert" path="res://scenes/ui/title_screen.tscn" id="8_title"]
+
+[sub_resource type="GDScript" id="GDScript_1"]
+script/source = "extends Node2D
+
+## ゲームの最大時間（秒）
+const MAX_GAME_TIME: float = 900.0  # 15分 = 900秒
+
+## 経過時間
+var elapsed_time: float = 0.0
+var is_game_running: bool = false
+
+@onready var world_node: Node2D = $WorldNode
+@onready var player: Node = $Player
+@onready var hud: Node = $HUD
+@onready var enemy_spawner: Node = $EnemySpawner
+@onready var upgrade_panel: Node = $UpgradePanel
+@onready var upgrade_generator: Node = $UpgradeGenerator
+@onready var upgrade_applier: Node = $UpgradeApplier
+@onready var game_over_screen: Node = $GameOverScreen
+@onready var title_screen: Node = $TitleScreen
+
+func _ready() -> void:
+	# PoolManagerにworld_nodeを設定
+	PoolManager.set_world_node(world_node)
+
+	# PlayerのシグナルをHUDに接続
+	player.hp_changed.connect(hud.update_hp)
+	player.died.connect(_on_player_died)
+
+	# EnemySpawnerを初期化
+	if enemy_spawner != null and player != null:
+		enemy_spawner.initialize(player)
+
+	# アップグレードシステムを初期化
+	if upgrade_generator != null and player != null:
+		upgrade_generator.initialize(player)
+	if upgrade_applier != null and player != null:
+		upgrade_applier.initialize(player)
+	if upgrade_panel != null:
+		upgrade_panel.upgrade_selected.connect(_on_upgrade_selected)
+
+	# LevelSystemのシグナル接続
+	LevelSystem.level_up.connect(_on_level_up)
+
+	# UI画面のシグナル接続
+	if title_screen != null:
+		title_screen.start_pressed.connect(_on_title_start_pressed)
+		title_screen.quit_pressed.connect(_on_title_quit_pressed)
+	if game_over_screen != null:
+		game_over_screen.retry_pressed.connect(_on_game_over_retry_pressed)
+		game_over_screen.title_pressed.connect(_on_game_over_title_pressed)
+
+	# デバッグ用: タイトル画面をスキップしてすぐ開始
+	const SKIP_TITLE_FOR_DEBUG = true
+	if SKIP_TITLE_FOR_DEBUG:
+		_start_game()
+	else:
+		_show_title_screen()
+
+func _process(delta: float) -> void:
+	# ゲーム時間のカウント
+	if is_game_running and GameManager.current_state == GameManager.GameState.PLAYING:
+		elapsed_time += delta
+
+		# 15分経過でゲームオーバー
+		if elapsed_time >= MAX_GAME_TIME:
+			_on_time_limit_reached()
+
+func _on_time_limit_reached() -> void:
+	print(\"時間切れ: %.1f秒経過\" % elapsed_time)
+	is_game_running = false
+
+	# プレイヤーを強制的に死亡させる
+	if player != null:
+		_on_player_died()
+
+func _on_player_died() -> void:
+	# 統計情報を記録
+	if GameManager.game_stats != null:
+		GameManager.game_stats.end_time = Time.get_ticks_msec()
+		GameManager.game_stats.survival_time = (GameManager.game_stats.end_time - GameManager.game_stats.start_time) / 1000.0
+		GameManager.game_stats.final_level = LevelSystem.current_level
+
+	# ゲームオーバー状態に変更
+	GameManager.end_game()
+
+	# ゲームオーバー画面を表示
+	if game_over_screen != null and GameManager.game_stats != null:
+		game_over_screen.show_game_over(GameManager.game_stats)
+
+func _on_level_up(new_level: int) -> void:
+	print(\"レベルアップ: Lv%d\" % new_level)
+
+	# アップグレード選択肢を生成
+	if upgrade_generator != null:
+		var options = upgrade_generator.generate_options()
+		if upgrade_panel != null:
+			upgrade_panel.show_options(options)
+
+func _on_upgrade_selected(option) -> void:
+	print(\"アップグレード選択: %s\" % option.display_name)
+
+	# アップグレードを適用
+	if upgrade_applier != null:
+		upgrade_applier.apply_upgrade(option)
+
+	# ゲームを再開
+	GameManager.change_state(GameManager.GameState.PLAYING)
+
+## タイトル画面の開始ボタン
+func _on_title_start_pressed() -> void:
+	if title_screen != null:
+		title_screen.hide_title()
+	_start_game()
+
+## タイトル画面の終了ボタン
+func _on_title_quit_pressed() -> void:
+	get_tree().quit()
+
+## ゲームオーバー画面のリトライボタン
+func _on_game_over_retry_pressed() -> void:
+	_start_game()
+
+## ゲームオーバー画面のタイトルボタン
+func _on_game_over_title_pressed() -> void:
+	_show_title_screen()
+
+## タイトル画面を表示
+func _show_title_screen() -> void:
+	if title_screen != null:
+		title_screen.show_title()
+	if hud != null:
+		hud.visible = false
+	GameManager.change_state(GameManager.GameState.TITLE)
+
+## ゲーム開始
+func _start_game() -> void:
+	# 経過時間をリセット
+	elapsed_time = 0.0
+	is_game_running = true
+
+	# HUDを表示
+	if hud != null:
+		hud.visible = true
+
+	# LevelSystemをリセット
+	LevelSystem.reset()
+
+	# PoolManagerのアクティブオブジェクトをクリア
+	PoolManager.clear_all_active()
+
+	# プレイヤーをリセット
+	if player != null:
+		player.current_hp = player.max_hp
+		player.hp_changed.emit(player.current_hp, player.max_hp)
+		player.global_position = Vector2(576, 324)
+
+	# GameManager経由でゲーム開始
+	GameManager.start_game()
+"
+
+[node name="GameScene" type="Node2D"]
+script = SubResource("GDScript_1")
+
+[node name="WorldNode" type="Node2D" parent="."]
+
+[node name="Player" parent="." instance=ExtResource("1_4h8n2")]
+position = Vector2(576, 324)
+
+[node name="HUD" parent="." instance=ExtResource("2_3j7k5")]
+
+[node name="EnemySpawner" type="Node" parent="."]
+script = ExtResource("3_enemy")
+
+[node name="UpgradePanel" parent="." instance=ExtResource("4_upgrade")]
+
+[node name="UpgradeGenerator" type="Node" parent="."]
+script = ExtResource("5_generator")
+
+[node name="UpgradeApplier" type="Node" parent="."]
+script = ExtResource("6_applier")
+
+[node name="GameOverScreen" parent="." instance=ExtResource("7_gameover")]
+
+[node name="TitleScreen" parent="." instance=ExtResource("8_title")]

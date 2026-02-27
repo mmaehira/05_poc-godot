@@ -1,0 +1,39 @@
+[gd_scene load_steps=7 format=3 uid="uid://c5q8y2xj3vwqk"]
+
+[ext_resource type="Script" path="res://scripts/player/player.gd" id="1_7k5m3"]
+[ext_resource type="Script" path="res://scripts/player/weapon_manager.gd" id="2_weapon"]
+[ext_resource type="Script" path="res://scripts/player/player_visual.gd" id="3_visual"]
+[ext_resource type="Script" path="res://scripts/player/skill_manager.gd" id="4_skill"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1"]
+size = Vector2(24, 24)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_attract"]
+radius = 150.0
+
+[node name="Player" type="CharacterBody2D"]
+collision_layer = 1
+collision_mask = 2
+script = ExtResource("1_7k5m3")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_1")
+
+[node name="Visual" type="Polygon2D" parent="."]
+script = ExtResource("3_visual")
+
+[node name="WeaponManager" type="Node" parent="."]
+script = ExtResource("2_weapon")
+
+[node name="SkillManager" type="Node" parent="."]
+script = ExtResource("4_skill")
+
+[node name="ExpAttractArea" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 4
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ExpAttractArea"]
+shape = SubResource("CircleShape2D_attract")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+enabled = true

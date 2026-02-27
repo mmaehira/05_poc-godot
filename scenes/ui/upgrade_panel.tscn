@@ -1,0 +1,46 @@
+[gd_scene load_steps=2 format=3 uid="uid://c8x5y9z2qwert"]
+
+[ext_resource type="Script" path="res://scripts/ui/upgrade_panel.gd" id="1_upgrade"]
+
+[node name="UpgradePanel" type="CanvasLayer"]
+process_mode = 3
+script = ExtResource("1_upgrade")
+
+[node name="PanelContainer" type="PanelContainer" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -150.0
+offset_right = 200.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="PanelContainer/VBoxContainer"]
+layout_mode = 2
+text = "レベルアップ！"
+horizontal_alignment = 1
+
+[node name="Option1Button" type="Button" parent="PanelContainer/VBoxContainer"]
+custom_minimum_size = Vector2(380, 60)
+layout_mode = 2
+text = "[通常] 武器強化
+ランダムな武器をLv+1"
+
+[node name="Option2Button" type="Button" parent="PanelContainer/VBoxContainer"]
+custom_minimum_size = Vector2(380, 60)
+layout_mode = 2
+text = "[通常] 最大HP増加
++20 HP"
+
+[node name="Option3Button" type="Button" parent="PanelContainer/VBoxContainer"]
+custom_minimum_size = Vector2(380, 60)
+layout_mode = 2
+text = "[通常] 移動速度増加
++10% スピード"

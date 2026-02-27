@@ -1,0 +1,36 @@
+[gd_scene load_steps=3 format=3 uid="uid://m1u2z3l4e5f6g"]
+
+[sub_resource type="Curve" id="Curve_scale"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="Gradient_color"]
+offsets = PackedFloat32Array(0, 0.5, 1)
+colors = PackedColorArray(1, 1, 0.8, 1, 1, 0.5, 0, 0.8, 1, 0.2, 0, 0)
+
+[node name="MuzzleFlash" type="CPUParticles2D"]
+emitting = false
+amount = 8
+lifetime = 0.2
+one_shot = true
+explosiveness = 1.0
+randomness = 0.5
+local_coords = true
+emission_shape = 1
+emission_sphere_radius = 4.0
+direction = Vector2(0, 0)
+spread = 180.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 20.0
+initial_velocity_max = 40.0
+scale_amount_min = 2.0
+scale_amount_max = 4.0
+scale_amount_curve = SubResource("Curve_scale")
+color_ramp = SubResource("Gradient_color")
+
+[node name="Timer" type="Timer" parent="."]
+wait_time = 0.3
+one_shot = true
+autostart = false
+
+[connection signal="timeout" from="Timer" to="." method="queue_free"]

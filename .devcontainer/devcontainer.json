@@ -1,0 +1,12 @@
+{
+    "name": "poc-godot",
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "postCreateCommand": "curl -fsSL https://claude.ai/install.sh | bash",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "anthropic.claude-code"
+            ]
+        }
+    }
+}

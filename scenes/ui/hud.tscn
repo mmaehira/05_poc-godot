@@ -1,0 +1,53 @@
+[gd_scene load_steps=6 format=3 uid="uid://bh7m3n4p8qwxr"]
+
+[ext_resource type="Script" path="res://scripts/ui/hud.gd" id="1_2j8k4"]
+[ext_resource type="PackedScene" uid="uid://cwnl2v7xhbqkb" path="res://scenes/ui/combo_display.tscn" id="2_combo"]
+[ext_resource type="PackedScene" uid="uid://bqx8r5n3vy7wk" path="res://scenes/ui/boss_health_bar.tscn" id="3_boss_hp"]
+[ext_resource type="PackedScene" uid="uid://c4nq8r7px3wvy" path="res://scenes/ui/powerup_timer_display.tscn" id="4_powerup"]
+[ext_resource type="PackedScene" uid="uid://dw5k8n3rx9pty" path="res://scenes/ui/skill_cooldown_display.tscn" id="5_skill"]
+
+[node name="HUD" type="CanvasLayer"]
+script = ExtResource("1_2j8k4")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+
+[node name="HPLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "HP: 100 / 100"
+
+[node name="LevelLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Level: 1"
+
+[node name="ExpBar" type="ProgressBar" parent="MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(200, 20)
+layout_mode = 2
+max_value = 10.0
+value = 0.0
+show_percentage = false
+
+[node name="TimeLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Time: 00:00"
+
+[node name="ComboDisplay" parent="." instance=ExtResource("2_combo")]
+
+[node name="BossHealthBar" parent="." instance=ExtResource("3_boss_hp")]
+
+[node name="PowerUpTimerDisplay" parent="." instance=ExtResource("4_powerup")]
+
+[node name="SkillCooldownDisplay" parent="." instance=ExtResource("5_skill")]

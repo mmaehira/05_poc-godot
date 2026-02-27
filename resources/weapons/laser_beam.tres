@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=2 format=3 uid="uid://laser_beam_001"]
+
+[ext_resource type="Script" path="res://resources/weapon.gd" id="1_laser"]
+
+[resource]
+script = ExtResource("1_laser")
+weapon_name = "Laser Beam"
+description = "敵を貫通する赤いレーザー"
+base_damage = 8
+attack_interval = 0.6
+attack_type = 3
+projectile_count = 1
+projectile_speed = 800.0
+pierce_count = -1
+orbital_radius = 80.0
+orbital_speed = 2.0
+orbital_count = 1
+chain_range = 100.0
+chain_count = 3
+chain_damage_falloff = 0.8

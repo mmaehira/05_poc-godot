@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/weapon.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+weapon_name = "範囲爆発"
+description = "周囲全方位に弾丸を発射"
+base_damage = 15
+attack_interval = 2.0
+attack_type = 1
+projectile_count = 8
+projectile_speed = 250.0

@@ -1,0 +1,37 @@
+{
+  "autoApprove": {
+    "enabled": true,
+    "tools": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash",
+      "Glob",
+      "Grep"
+    ],
+    "paths": [
+      "autoload/**",
+      "resources/**",
+      "scenes/**",
+      "scripts/**",
+      "assets/**",
+      ".steering/**",
+      "docs/**"
+    ],
+    "exclude": [
+      ".git/**",
+      ".godot/**",
+      "build/**"
+    ]
+  },
+  "git": {
+    "autoCommit": false,
+    "commitMessageFormat": "[type] brief description\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>"
+  },
+  "godot": {
+    "version": "4.3",
+    "autoloadLimit": 3,
+    "enforceTypeAnnotations": true,
+    "sceneFormat": "tscn"
+  }
+}

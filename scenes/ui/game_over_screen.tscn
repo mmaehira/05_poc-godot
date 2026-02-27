@@ -1,0 +1,70 @@
+[gd_scene load_steps=2 format=3 uid="uid://d8x9y2z3qwert"]
+
+[ext_resource type="Script" path="res://scripts/ui/game_over_screen.gd" id="1_gameover"]
+
+[node name="GameOverScreen" type="CanvasLayer"]
+process_mode = 3
+script = ExtResource("1_gameover")
+
+[node name="PanelContainer" type="PanelContainer" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -250.0
+offset_top = -200.0
+offset_right = 250.0
+offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="PanelContainer/VBoxContainer"]
+layout_mode = 2
+text = "ゲームオーバー"
+horizontal_alignment = 1
+
+[node name="StatsContainer" type="VBoxContainer" parent="PanelContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="TimeLabel" type="Label" parent="PanelContainer/VBoxContainer/StatsContainer"]
+layout_mode = 2
+text = "生存時間: 00:00"
+horizontal_alignment = 1
+
+[node name="LevelLabel" type="Label" parent="PanelContainer/VBoxContainer/StatsContainer"]
+layout_mode = 2
+text = "到達レベル: Lv1"
+horizontal_alignment = 1
+
+[node name="KillsLabel" type="Label" parent="PanelContainer/VBoxContainer/StatsContainer"]
+layout_mode = 2
+text = "撃破数: 0"
+horizontal_alignment = 1
+
+[node name="DamageDealtLabel" type="Label" parent="PanelContainer/VBoxContainer/StatsContainer"]
+layout_mode = 2
+text = "与ダメージ: 0"
+horizontal_alignment = 1
+
+[node name="DamageTakenLabel" type="Label" parent="PanelContainer/VBoxContainer/StatsContainer"]
+layout_mode = 2
+text = "被ダメージ: 0"
+horizontal_alignment = 1
+
+[node name="ButtonContainer" type="HBoxContainer" parent="PanelContainer/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="RetryButton" type="Button" parent="PanelContainer/VBoxContainer/ButtonContainer"]
+custom_minimum_size = Vector2(150, 40)
+layout_mode = 2
+text = "リトライ"
+
+[node name="TitleButton" type="Button" parent="PanelContainer/VBoxContainer/ButtonContainer"]
+custom_minimum_size = Vector2(150, 40)
+layout_mode = 2
+text = "タイトルへ"

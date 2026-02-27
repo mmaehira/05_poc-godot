@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/weapon.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+weapon_name = "ホーミングミサイル"
+description = "最も近い敵を追尾するミサイル"
+base_damage = 20
+attack_interval = 1.5
+attack_type = 2
+projectile_count = 1
+projectile_speed = 200.0

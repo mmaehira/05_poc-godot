@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/weapon.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+weapon_name = "直線ショット"
+description = "プレイヤーの移動方向に弾丸を発射"
+base_damage = 10
+attack_interval = 0.5
+attack_type = 0
+projectile_count = 1
+projectile_speed = 300.0
