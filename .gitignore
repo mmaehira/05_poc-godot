@@ -33,3 +33,7 @@ build/
 
 # User-specific files
 *.user
+
+# Environment and virtual environment
+.env
+.venv/

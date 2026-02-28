@@ -1,0 +1,18 @@
+{
+  "name": "Full Character Set",
+  "description": "プレイヤー、全敵種類、全ボスのフルセット",
+  "estimated_time": "1-2 hours",
+  "estimated_cost": "$1.30 USD (13 images × $0.10)",
+  "assets": [
+    "player_idle",
+    "player_walk",
+    "player_hit",
+    "basic_enemy",
+    "strong_enemy",
+    "fast_enemy",
+    "heavy_enemy",
+    "tank_boss",
+    "sniper_boss",
+    "swarm_boss"
+  ]
+}

@@ -12,14 +12,13 @@ size = Vector2(24, 24)
 radius = 150.0
 
 [node name="Player" type="CharacterBody2D"]
-collision_layer = 1
 collision_mask = 2
 script = ExtResource("1_7k5m3")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("RectangleShape2D_1")
 
-[node name="Visual" type="Polygon2D" parent="."]
+[node name="Visual" type="Sprite2D" parent="."]
 script = ExtResource("3_visual")
 
 [node name="WeaponManager" type="Node" parent="."]
@@ -36,4 +35,3 @@ collision_mask = 4
 shape = SubResource("CircleShape2D_attract")
 
 [node name="Camera2D" type="Camera2D" parent="."]
-enabled = true

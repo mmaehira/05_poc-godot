@@ -1,0 +1,12 @@
+{
+  "name": "MVP Assets (Minimum Viable Product)",
+  "description": "最小限のアセットでゲームを動作させるための基本セット",
+  "estimated_time": "20-30 minutes",
+  "estimated_cost": "$0.40 USD (4 images × $0.10)",
+  "assets": [
+    "player_idle",
+    "basic_enemy",
+    "straight_shot",
+    "exp_orb_small"
+  ]
+}

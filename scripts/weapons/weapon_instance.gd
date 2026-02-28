@@ -84,14 +84,18 @@ func _attack() -> void:
 			_attack_chain()
 
 func _attack_straight_shot() -> void:
-	var direction = owner_player.velocity.normalized()
-	if direction == Vector2.ZERO:
-		# 停止中は最寄りの敵方向に発射
-		var nearest_enemy = _find_nearest_enemy()
-		if nearest_enemy != null:
-			direction = (nearest_enemy.global_position - owner_player.global_position).normalized()
-		else:
-			direction = Vector2.RIGHT  # 敵がいない場合はデフォルト方向
+	# 常に最も近い敵の方向に発射（ホーミングなし）
+	var nearest_enemy = _find_nearest_enemy()
+	var direction: Vector2
+
+	if nearest_enemy != null:
+		# 最寄りの敵方向に発射
+		direction = (nearest_enemy.global_position - owner_player.global_position).normalized()
+	else:
+		# 敵がいない場合は進行方向、または右方向
+		direction = owner_player.velocity.normalized()
+		if direction == Vector2.ZERO:
+			direction = Vector2.RIGHT
 
 	var damage = _calculate_damage()
 	_spawn_projectile(owner_player.global_position, direction, damage, false)

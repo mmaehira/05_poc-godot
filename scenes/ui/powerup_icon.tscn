@@ -1,0 +1,17 @@
+[gd_scene load_steps=2 format=3 uid="uid://dkv8r9qpx4abc"]
+
+[ext_resource type="Script" path="res://scripts/ui/powerup_icon.gd" id="1_powerup_icon"]
+
+[node name="PowerUpIcon" type="HBoxContainer"]
+custom_minimum_size = Vector2(120, 40)
+script = ExtResource("1_powerup_icon")
+
+[node name="IconLabel" type="Label" parent="."]
+custom_minimum_size = Vector2(50, 40)
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TimerLabel" type="Label" parent="."]
+custom_minimum_size = Vector2(70, 40)
+horizontal_alignment = 2
+vertical_alignment = 1

@@ -14,7 +14,7 @@ enum SkillType {
 	TIME_SLOW      # 時間減速（5秒間敵の速度50%減少、CD 20秒）
 }
 
-var selected_skill: SkillType = SkillType.DASH
+var selected_skill: SkillType = SkillType.NOVA_BLAST
 var cooldown_remaining: float = 0.0
 var skill_cooldowns: Dictionary = {
 	SkillType.DASH: 5.0,
@@ -47,6 +47,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func use_skill() -> void:
 	print("[SkillManager] スキル使用: %s" % SkillType.keys()[selected_skill])
 
+	# スキル実行
 	match selected_skill:
 		SkillType.DASH:
 			_skill_dash()
@@ -56,6 +57,9 @@ func use_skill() -> void:
 			_skill_shield()
 		SkillType.TIME_SLOW:
 			_skill_time_slow()
+
+	# Playerの色を変更（5秒間）
+	_apply_skill_visual_effect()
 
 	cooldown_remaining = skill_cooldowns[selected_skill]
 	skill_used.emit(SkillType.keys()[selected_skill])
@@ -116,9 +120,9 @@ func _skill_time_slow() -> void:
 	var enemies = get_tree().get_nodes_in_group("enemies")
 
 	for enemy in enemies:
-		if enemy.has("speed"):
-			var original_speed = enemy.speed
-			enemy.speed *= 0.5
+		if enemy.has("move_speed"):
+			var original_speed = enemy.move_speed
+			enemy.move_speed *= 0.5
 
 			# 5秒後に元に戻す
 			_restore_enemy_speed.call_deferred(enemy, original_speed, 5.0)
@@ -128,10 +132,29 @@ func _skill_time_slow() -> void:
 ## 敵の速度を元に戻す（遅延実行）
 func _restore_enemy_speed(enemy: Node, original_speed: float, delay: float) -> void:
 	await get_tree().create_timer(delay).timeout
-	if is_instance_valid(enemy) and enemy.has("speed"):
-		enemy.speed = original_speed
+	if is_instance_valid(enemy) and enemy.has("move_speed"):
+		enemy.move_speed = original_speed
 
 ## スキルを変更
 func set_skill(skill_type: SkillType) -> void:
 	selected_skill = skill_type
 	DebugConfig.log_info("SkillManager", "スキル変更: %s" % SkillType.keys()[skill_type])
+
+## スキル使用時のビジュアルエフェクト（プレイヤーの色変更）
+func _apply_skill_visual_effect() -> void:
+	var visual = player.get_node_or_null("Visual")
+	if not visual or not visual.has_method("apply_skill_color"):
+		return
+
+	var skill_color: Color
+	match selected_skill:
+		SkillType.DASH:
+			skill_color = Color(0.2, 0.8, 1.0)  # 青系（高速移動）
+		SkillType.NOVA_BLAST:
+			skill_color = Color(1.0, 0.3, 0.2)  # 赤系（攻撃）
+		SkillType.SHIELD:
+			skill_color = Color(0.2, 1.0, 0.5)  # 緑系（防御）
+		SkillType.TIME_SLOW:
+			skill_color = Color(0.8, 0.2, 1.0)  # 紫系（時間操作）
+
+	visual.apply_skill_color(skill_color)
