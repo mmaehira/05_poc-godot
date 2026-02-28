@@ -1,13 +1,13 @@
-[gd_scene load_steps=9 format=3 uid="uid://b47ts00x6u"]
+[gd_scene load_steps=10 format=3 uid="uid://b47ts00x6u"]
 
 [ext_resource type="PackedScene" uid="uid://c5q8y2xj3vwqk" path="res://scenes/player/player.tscn" id="1_4h8n2"]
 [ext_resource type="PackedScene" uid="uid://bh7m3n4p8qwxr" path="res://scenes/ui/hud.tscn" id="2_3j7k5"]
 [ext_resource type="Script" path="res://scripts/systems/enemy_spawner.gd" id="3_enemy"]
-[ext_resource type="PackedScene" uid="uid://c8x5y9z2qwert" path="res://scenes/ui/upgrade_panel.tscn" id="4_upgrade"]
+[ext_resource type="PackedScene" uid="uid://c8x50a02qwert" path="res://scenes/ui/upgrade_panel.tscn" id="4_upgrade"]
 [ext_resource type="Script" path="res://scripts/systems/upgrade_generator.gd" id="5_generator"]
 [ext_resource type="Script" path="res://scripts/systems/upgrade_applier.gd" id="6_applier"]
-[ext_resource type="PackedScene" uid="uid://d8x9y2z3qwert" path="res://scenes/ui/game_over_screen.tscn" id="7_gameover"]
-[ext_resource type="PackedScene" uid="uid://e9a1b3c4qwert" path="res://scenes/ui/title_screen.tscn" id="8_title"]
+[ext_resource type="PackedScene" uid="uid://ekfe03t6pi02" path="res://scenes/ui/game_over_screen.tscn" id="7_gameover"]
+[ext_resource type="PackedScene" uid="uid://beu5p1fu6pi02" path="res://scenes/ui/title_screen.tscn" id="8_title"]
 
 [sub_resource type="GDScript" id="GDScript_1"]
 script/source = "extends Node2D
@@ -178,11 +178,13 @@ script = SubResource("GDScript_1")
 position = Vector2(576, 324)
 
 [node name="HUD" parent="." instance=ExtResource("2_3j7k5")]
+visible = false
 
 [node name="EnemySpawner" type="Node" parent="."]
 script = ExtResource("3_enemy")
 
 [node name="UpgradePanel" parent="." instance=ExtResource("4_upgrade")]
+visible = false
 
 [node name="UpgradeGenerator" type="Node" parent="."]
 script = ExtResource("5_generator")
@@ -191,5 +193,7 @@ script = ExtResource("5_generator")
 script = ExtResource("6_applier")
 
 [node name="GameOverScreen" parent="." instance=ExtResource("7_gameover")]
+visible = false
 
 [node name="TitleScreen" parent="." instance=ExtResource("8_title")]
+visible = false

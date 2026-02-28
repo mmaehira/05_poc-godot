@@ -128,9 +128,14 @@ func collect_exp(amount: int) -> void:
 		push_warning("collect_exp: amount <= 0")
 		return
 
+	# コンボ倍率を適用
+	var multiplier = ComboManager.get_exp_multiplier()
+	var final_amount = int(amount * multiplier)
+
+	DebugConfig.log_debug(DEBUG_CONTEXT, "経験値獲得: %d (倍率: %.1fx)" % [final_amount, multiplier])
+
 	# LevelSystemに経験値を追加
-	var leveled_up = LevelSystem.add_exp(amount)
-	DebugConfig.log_debug(DEBUG_CONTEXT, "LevelSystem.add_exp() returned: %s" % leveled_up)
+	var leveled_up = LevelSystem.add_exp(final_amount)
 
 	# 経験値取得音
 	AudioManager.play_sfx("pickup", -12.0)

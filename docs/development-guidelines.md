@@ -159,7 +159,68 @@ var hp: int = 100  # テストモードでは初期HP固定
 
 # 2. Godot固有のベストプラクティス
 
-## 2.1 シーン設計
+## 2.1 リソース読み込み
+
+### 画像・テクスチャの読み込み
+
+**✅ 推奨される方法:**
+
+```gdscript
+# 静的ロード（エディタでプリロード）
+@export var texture: Texture2D
+
+# 動的ロード（ランタイム）
+var texture = load("res://path/to/texture.png")
+
+# 非同期ロード（大きなリソース）
+ResourceLoader.load_threaded_request("res://path/to/texture.png")
+var texture = await ResourceLoader.load_threaded_get("res://path/to/texture.png")
+```
+
+**❌ 避けるべき方法:**
+
+```gdscript
+# NG: ファイルシステムから直接読み込み
+var image = Image.new()
+image.load("/absolute/path/to/file.png")  # Godotのインポートシステムをバイパス
+
+# NG: res:// を手動で置き換え
+var path = "res://texture.png".replace("res://", "/project/path/")  # 環境依存
+var image = Image.new()
+image.load(path)
+```
+
+**理由:**
+1. **インポート設定の無視**: `.import` ファイルの設定（圧縮、ミップマップ等）が適用されない
+2. **環境依存**: 絶対パスは開発環境に依存し、エクスポート後に動作しない
+3. **リソースキャッシュ未使用**: 同じリソースを複数回ロードしてメモリ効率が悪い
+4. **最適化の喪失**: Godotのテクスチャ最適化が効かない
+
+### リソース読み込み時のエラーハンドリング
+
+```gdscript
+func load_sprite(path: String) -> Texture2D:
+	var texture = load(path)
+
+	if texture == null:
+		push_error("Failed to load texture: " + path)
+		return null
+
+	if not texture is Texture2D:
+		push_error("Resource is not a Texture2D: " + path)
+		return null
+
+	return texture
+```
+
+### 参考資料
+- [Godot Docs - Importing images](https://docs.godotengine.org/en/stable/tutorials/assets_pipeline/importing_images.html)
+- [Godot Docs - Resources](https://docs.godotengine.org/en/stable/tutorials/scripting/resources.html)
+- [トラブルシューティング: 画像読み込みイシュー](troubleshooting/2026-02-27_image_loading_issue.md)
+
+---
+
+## 2.2 シーン設計
 
 ### シーンの粒度
 - **1シーン = 1責務**
@@ -179,7 +240,7 @@ scenes/game.tscn
 
 ---
 
-## 2.2 ノードツリー設計
+## 2.3 ノードツリー設計
 
 ### process_mode設定
 ```gdscript
@@ -217,7 +278,7 @@ func initialize(player: Node) -> void:
 
 ---
 
-## 2.3 Resource活用
+## 2.4 Resource活用
 
 ### データ駆動設計
 ```gdscript
@@ -250,7 +311,7 @@ enum AttackType {
 
 ---
 
-## 2.4 Signal活用
+## 2.5 Signal活用
 
 ### Signal命名と使用
 ```gdscript
@@ -279,7 +340,7 @@ func _on_level_up(new_level: int, choices: Array[Dictionary]) -> void:
 
 ---
 
-## 2.5 Autoload使用方針
+## 2.6 Autoload使用方針
 
 ### Autoload制限
 - **MVP時点**: GameManager, LevelSystem, PoolManagerの3つのみ
@@ -1011,6 +1072,24 @@ Godotエディタ > デバッガ > プロファイラ
 ---
 
 # 13. 変更履歴
+
+## 2026-02-27: リソース読み込みベストプラクティス追加
+
+### 追加内容
+1. **Section 2.1（リソース読み込み）追加**
+   - **背景**: PlayerVisualで画像読み込みに失敗する問題が発生
+   - **追加**: 正しいリソース読み込み方法と避けるべきアンチパターンを明記
+   - **参照**: [docs/troubleshooting/2026-02-27_image_loading_issue.md](troubleshooting/2026-02-27_image_loading_issue.md)
+
+### セクション番号の調整
+- Section 2.1: シーン設計 → **リソース読み込み**（新規）
+- Section 2.2: シーン設計（旧2.1から移動）
+- Section 2.3: ノードツリー設計（旧2.2から移動）
+- Section 2.4: Resource活用（旧2.3から移動）
+- Section 2.5: Signal活用（旧2.4から移動）
+- Section 2.6: Autoload使用方針（旧2.5から移動）
+
+---
 
 ## 2026-02-26: 初版作成とレビュー修正
 

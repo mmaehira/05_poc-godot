@@ -13,9 +13,6 @@ func _ready() -> void:
 	damage = 30
 	exp_value = 500
 
-	visual.modulate = Color.DARK_RED
-	visual.custom_minimum_size = Vector2(60, 60)
-
 	current_health = max_health
 
 func _physics_process(delta: float) -> void:
@@ -24,6 +21,10 @@ func _physics_process(delta: float) -> void:
 		var direction = (player.global_position - global_position).normalized()
 		velocity = direction * move_speed
 		move_and_slide()
+
+		# ビジュアルの方向を更新
+		if visual and visual.has_method("update_direction"):
+			visual.update_direction(velocity)
 
 	# 攻撃パターン
 	attack_timer -= delta
@@ -38,7 +39,6 @@ func _physics_process(delta: float) -> void:
 func _enter_phase_2() -> void:
 	super._enter_phase_2()
 	move_speed = 20.0  # さらに遅く
-	visual.modulate = Color.DARK_VIOLET
 
 ## 衝撃波攻撃（360度12方向）
 func _attack_shockwave() -> void:

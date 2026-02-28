@@ -69,6 +69,6 @@ use_skill={
 
 [rendering]
 
-renderer/rendering_method.mobile="forward_plus"
 textures/canvas_textures/default_texture_filter=0
+renderer/rendering_method.mobile="forward_plus"
 2d/snapping/use_gpu_pixel_snap=true

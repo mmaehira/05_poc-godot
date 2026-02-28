@@ -45,6 +45,15 @@ func take_damage(amount: int) -> void:
 	current_health -= amount
 	health_changed.emit(current_health, max_health)
 
+	# ビジュアルエフェクト
+	if visual and visual.has_method("flash_damage"):
+		visual.flash_damage()
+
+	# HP割合で色変更
+	if visual and visual.has_method("update_hp_color"):
+		var hp_ratio = float(current_health) / float(max_health)
+		visual.update_hp_color(hp_ratio)
+
 	# ヒット音
 	AudioManager.play_sfx("hit", -12.0)
 
@@ -62,6 +71,10 @@ func _enter_phase_2() -> void:
 
 ## 撃破時の処理
 func _die() -> void:
+	# コンボ加算（ボスは10コンボ相当）
+	for i in range(10):
+		ComboManager.add_combo()
+
 	_spawn_drops()
 	died.emit()
 
