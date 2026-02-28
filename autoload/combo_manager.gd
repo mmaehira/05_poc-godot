@@ -17,6 +17,12 @@ func _process(delta: float) -> void:
 		if combo_timer <= 0:
 			break_combo()
 
+## コンボ状態をリセット
+func reset() -> void:
+	current_combo = 0
+	combo_timer = 0.0
+
+
 ## 敵撃破時にコンボを加算
 func add_combo() -> void:
 	current_combo += 1

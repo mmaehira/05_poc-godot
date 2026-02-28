@@ -23,6 +23,14 @@ var _orbital_angle: float = 0.0
 ## エフェクト用プリロード
 const MUZZLE_FLASH_SCENE = preload("res://scenes/effects/muzzle_flash.tscn")
 
+func _exit_tree() -> void:
+	# Orbital衛星ノードをクリーンアップ（Playerの子として追加されているため手動で解放）
+	for orbital in _orbital_nodes:
+		if is_instance_valid(orbital):
+			orbital.queue_free()
+	_orbital_nodes.clear()
+
+
 func initialize(weapon: Weapon, level: int, player: Node) -> void:
 	if weapon == null:
 		push_error("WeaponInstance.initialize: weapon is null")

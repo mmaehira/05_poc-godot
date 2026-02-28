@@ -26,6 +26,10 @@ func _ready() -> void:
 	# GameManagerのシグナル接続
 	GameManager.game_started.connect(_on_game_started)
 	GameManager.game_over.connect(_on_game_over)
+	GameManager.stage_cleared.connect(_on_game_over)
+
+	# ボス出現時にタイマー停止
+	BossManager.boss_spawned.connect(_on_boss_spawned)
 
 	# 初期表示
 	_update_level_display()
@@ -64,6 +68,10 @@ func _on_game_started() -> void:
 
 
 func _on_game_over() -> void:
+	is_counting = false
+
+
+func _on_boss_spawned(_boss: Node2D) -> void:
 	is_counting = false
 
 

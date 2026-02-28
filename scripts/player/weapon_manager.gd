@@ -70,6 +70,16 @@ func get_weapon_level(weapon_name: String) -> int:
 		return 0
 	return weapon.current_level
 
+## 全武器とアップグレード効果をリセット
+func reset() -> void:
+	for weapon in weapons:
+		weapon.queue_free()
+	weapons.clear()
+
+	critical_rate = 0.0
+	area_multiplier = 1.0
+	multishot_count = 0
+
 func _find_weapon(weapon_name: String) -> Node:
 	for weapon in weapons:
 		if weapon.weapon_data != null and weapon.weapon_data.weapon_name == weapon_name:

@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://b47ts00x6u"]
+[gd_scene load_steps=11 format=3 uid="uid://b47ts00x6u"]
 
 [ext_resource type="PackedScene" uid="uid://c5q8y2xj3vwqk" path="res://scenes/player/player.tscn" id="1_4h8n2"]
 [ext_resource type="PackedScene" uid="uid://bh7m3n4p8qwxr" path="res://scenes/ui/hud.tscn" id="2_3j7k5"]
@@ -8,12 +8,10 @@
 [ext_resource type="Script" path="res://scripts/systems/upgrade_applier.gd" id="6_applier"]
 [ext_resource type="PackedScene" uid="uid://ekfe03t6pi02" path="res://scenes/ui/game_over_screen.tscn" id="7_gameover"]
 [ext_resource type="PackedScene" uid="uid://beu5p1fu6pi02" path="res://scenes/ui/title_screen.tscn" id="8_title"]
+[ext_resource type="PackedScene" path="res://scenes/ui/pause_menu.tscn" id="9_pause"]
 
 [sub_resource type="GDScript" id="GDScript_1"]
 script/source = "extends Node2D
-
-## ゲームの最大時間（秒）
-const MAX_GAME_TIME: float = 900.0  # 15分 = 900秒
 
 ## 経過時間
 var elapsed_time: float = 0.0
@@ -28,6 +26,7 @@ var is_game_running: bool = false
 @onready var upgrade_applier: Node = $UpgradeApplier
 @onready var game_over_screen: Node = $GameOverScreen
 @onready var title_screen: Node = $TitleScreen
+@onready var pause_menu: Node = $PauseMenu
 
 func _ready() -> void:
 	# PoolManagerにworld_nodeを設定
@@ -59,44 +58,59 @@ func _ready() -> void:
 	if game_over_screen != null:
 		game_over_screen.retry_pressed.connect(_on_game_over_retry_pressed)
 		game_over_screen.title_pressed.connect(_on_game_over_title_pressed)
+	if pause_menu != null:
+		pause_menu.resume_pressed.connect(_on_pause_resume_pressed)
+		pause_menu.title_pressed.connect(_on_pause_title_pressed)
 
-	# デバッグ用: タイトル画面をスキップしてすぐ開始
-	const SKIP_TITLE_FOR_DEBUG = true
-	if SKIP_TITLE_FOR_DEBUG:
-		_start_game()
-	else:
-		_show_title_screen()
+	# ボスシグナル接続
+	BossManager.boss_spawned.connect(_on_boss_spawned)
+	BossManager.boss_defeated.connect(_on_boss_defeated)
+
+	# タイトル画面を表示
+	_show_title_screen()
 
 func _process(delta: float) -> void:
-	# ゲーム時間のカウント
+	# ゲーム時間のカウント（ボス戦中はタイマー停止）
 	if is_game_running and GameManager.current_state == GameManager.GameState.PLAYING:
-		elapsed_time += delta
+		if BossManager.current_boss == null:
+			elapsed_time += delta
 
-		# 15分経過でゲームオーバー
-		if elapsed_time >= MAX_GAME_TIME:
-			_on_time_limit_reached()
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed(\"pause\"):
+		if GameManager.current_state == GameManager.GameState.PLAYING:
+			_show_pause_menu()
+		elif GameManager.current_state == GameManager.GameState.PAUSED:
+			_hide_pause_menu()
 
-func _on_time_limit_reached() -> void:
-	print(\"時間切れ: %.1f秒経過\" % elapsed_time)
+## ボス出現時
+func _on_boss_spawned(_boss: Node2D) -> void:
+	print(\"ボス出現! タイマー停止\")
+
+## ボス撃破時 → ステージクリア
+func _on_boss_defeated(_boss: Node2D) -> void:
+	if not is_game_running:
+		return
+	print(\"ボス撃破! ステージクリア: %.1f秒経過\" % elapsed_time)
 	is_game_running = false
 
-	# プレイヤーを強制的に死亡させる
-	if player != null:
-		_on_player_died()
+	# ステージクリア処理
+	GameManager.clear_stage()
+
+	# 結果画面を表示（クリア）
+	if game_over_screen != null and GameManager.game_stats != null:
+		game_over_screen.show_result(GameManager.game_stats, true)
 
 func _on_player_died() -> void:
-	# 統計情報を記録
-	if GameManager.game_stats != null:
-		GameManager.game_stats.end_time = Time.get_ticks_msec()
-		GameManager.game_stats.survival_time = (GameManager.game_stats.end_time - GameManager.game_stats.start_time) / 1000.0
-		GameManager.game_stats.final_level = LevelSystem.current_level
+	if not is_game_running:
+		return
+	is_game_running = false
 
 	# ゲームオーバー状態に変更
 	GameManager.end_game()
 
-	# ゲームオーバー画面を表示
+	# 結果画面を表示（ゲームオーバー）
 	if game_over_screen != null and GameManager.game_stats != null:
-		game_over_screen.show_game_over(GameManager.game_stats)
+		game_over_screen.show_result(GameManager.game_stats, false)
 
 func _on_level_up(new_level: int) -> void:
 	print(\"レベルアップ: Lv%d\" % new_level)
@@ -135,6 +149,30 @@ func _on_game_over_retry_pressed() -> void:
 func _on_game_over_title_pressed() -> void:
 	_show_title_screen()
 
+## ポーズメニューの続けるボタン
+func _on_pause_resume_pressed() -> void:
+	_hide_pause_menu()
+
+## ポーズメニューのタイトルボタン
+func _on_pause_title_pressed() -> void:
+	is_game_running = false
+	if pause_menu != null:
+		pause_menu.hide_menu()
+	PoolManager.clear_all_active()
+	_show_title_screen()
+
+## ポーズメニューを表示
+func _show_pause_menu() -> void:
+	GameManager.pause_game()
+	if pause_menu != null:
+		pause_menu.show_menu()
+
+## ポーズメニューを非表示
+func _hide_pause_menu() -> void:
+	if pause_menu != null:
+		pause_menu.hide_menu()
+	GameManager.resume_game()
+
 ## タイトル画面を表示
 func _show_title_screen() -> void:
 	if title_screen != null:
@@ -153,19 +191,22 @@ func _start_game() -> void:
 	if hud != null:
 		hud.visible = true
 
-	# LevelSystemをリセット
-	LevelSystem.reset()
-
-	# PoolManagerのアクティブオブジェクトをクリア
-	PoolManager.clear_all_active()
-
-	# プレイヤーをリセット
+	# プレイヤーをリセット（武器・パワーアップ含む完全リセット）
 	if player != null:
-		player.current_hp = player.max_hp
-		player.hp_changed.emit(player.current_hp, player.max_hp)
+		player.reset()
 		player.global_position = Vector2(576, 324)
 
-	# GameManager経由でゲーム開始
+	# EnemySpawnerの難易度タイマーをリセット
+	if enemy_spawner != null:
+		enemy_spawner.reset_timer()
+
+	# コンボ状態をリセット
+	ComboManager.reset()
+
+	# ボス状態をリセット
+	BossManager.reset()
+
+	# GameManager経由でゲーム開始（LevelSystem.reset, PoolManager.clear含む）
 	GameManager.start_game()
 "
 
@@ -196,4 +237,7 @@ script = ExtResource("6_applier")
 visible = false
 
 [node name="TitleScreen" parent="." instance=ExtResource("8_title")]
+visible = false
+
+[node name="PauseMenu" parent="." instance=ExtResource("9_pause")]
 visible = false

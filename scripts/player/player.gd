@@ -18,8 +18,9 @@ signal hp_changed(new_hp: int, max_hp: int)
 signal died()
 
 const BASE_SPEED: float = 200.0
+const BASE_MAX_HP: int = 100
 
-@export var max_hp: int = 100
+@export var max_hp: int = BASE_MAX_HP
 @export var speed: float = BASE_SPEED
 @export var invincible: bool = false  # パフォーマンステスト用
 
@@ -46,14 +47,8 @@ func _ready() -> void:
 	else:
 		DebugConfig.log_critical(DEBUG_CONTEXT, "ERROR: exp_attract_area is null!")
 
-	# テスト用: 開始時に武器を追加
-	if weapon_manager != null:
-		var straight_shot = load("res://resources/weapons/straight_shot.tres")
-		weapon_manager.add_weapon(straight_shot)
-
-		# ホーミングミサイルもテスト用に追加（コメントアウト：選択肢を増やすため）
-		# var homing_missile = load("res://resources/weapons/homing_missile.tres")
-		# weapon_manager.add_weapon(homing_missile)
+	# 初期武器を追加
+	_add_initial_weapon()
 
 func _process(delta: float) -> void:
 	_handle_input(delta)
@@ -156,6 +151,29 @@ func _spawn_level_up_effect() -> void:
 		level_up.global_position = global_position
 		level_up.emitting = true
 		level_up.get_node("Timer").start()
+
+## ゲーム開始時にプレイヤー状態をリセット
+func reset() -> void:
+	max_hp = BASE_MAX_HP
+	current_hp = max_hp
+	speed = BASE_SPEED
+	active_powerups.clear()
+	hp_changed.emit(current_hp, max_hp)
+
+	# 武器リセット & 初期武器追加
+	if weapon_manager:
+		weapon_manager.reset()
+	_add_initial_weapon()
+
+
+## 初期武器リソース
+const INITIAL_WEAPON = preload("res://resources/weapons/straight_shot.tres")
+
+## 初期武器を追加
+func _add_initial_weapon() -> void:
+	if weapon_manager != null:
+		weapon_manager.add_weapon(INITIAL_WEAPON)
+
 
 ## パワーアップ効果を追加
 func add_powerup_effect(powerup_name: String, duration: float) -> void:

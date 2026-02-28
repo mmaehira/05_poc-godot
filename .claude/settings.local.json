@@ -1,17 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(timeout 10 godot --headless --path . scenes/bosses/tank_boss.tscn)",
-      "Bash(timeout 10 godot --headless --path . scenes/bosses/sniper_boss.tscn)",
-      "Bash(timeout 10 godot --headless --path . scenes/bosses/swarm_boss.tscn)",
-      "Bash(for file in pipo-charachip019.png pipo-halloweenchara2016_02.png pipo-halloweenchara2016_23.png pipo-halloweenchara2016_13.png pipo-halloweenchara2016_10.png)",
-      "Bash(echo \"=== $file ===\")",
-      "Bash(.venv/bin/python3 -c \"\nfrom PIL import Image\nimg = Image.open(''scenes/enemies/$file'')\nprint(f''Size: {img.size}'')\nprint(f''Mode: {img.mode}'')\nwidth, height = img.size\nprint(f''Grid (32x32): {width//32}x{height//32}'')\nprint(f''Grid (48x48): {width//48}x{height//48}'')\n\")",
-      "Bash(timeout 10 godot --headless --path /workspaces/05_poc-godot --quit-after 3)",
-      "Bash(for file in /workspaces/05_poc-godot/assets/characters/enemies/*.png.import)",
-      "Bash(do echo \"=== $file ===\")",
-      "Bash(cat \"$file\")",
-      "Bash(godot --headless --editor --path /workspaces/05_poc-godot --quit-after 5)"
+      "Bash"
     ],
     "deny": [],
     "ask": []
