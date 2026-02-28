@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/weapon.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+weapon_name = "Cytokine Ring"
+description = "敵を減速させるバリアフィールド"
+base_damage = 5
+attack_interval = 0.8
+attack_type = 5
+barrier_radius = 70.0
+slow_factor = 0.6
+dot_interval = 0.8

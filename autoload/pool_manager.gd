@@ -38,6 +38,12 @@ var exp_orb_pool: Array[Node] = []
 ## アクティブな経験値オーブ
 var active_exp_orbs: Array[Node] = []
 
+## 敵弾のプール
+const MAX_ENEMY_PROJECTILE_POOL_SIZE: int = 100
+var enemy_projectile_pool: Array[Node] = []
+## アクティブな敵弾
+var active_enemy_projectiles: Array[Node] = []
+
 ## 実体を配置する親ノード（GameSceneから設定される）
 var world_node: Node = null
 
@@ -121,12 +127,9 @@ func spawn_enemy(scene_path: String, position: Vector2) -> Node:
 		enemy.collision_mask = 1 | 4  # プレイヤー | 弾丸
 
 	# 敵の状態リセット（reset()メソッドがあれば呼び出す）
+	# 注: initialize()はSpawner側で呼ぶため、ここでは呼ばない（二重初期化防止）
 	if enemy.has_method("reset"):
 		enemy.reset()
-	elif enemy.has_method("initialize"):
-		# initializeメソッドがある場合（プレイヤー参照が必要な敵用）
-		var player: Node = get_tree().get_first_node_in_group("player")
-		enemy.initialize(position, player)
 
 	# アクティブリストに追加
 	active_enemies[scene_path].append(enemy)
@@ -375,6 +378,73 @@ func return_exp_orb(orb: Node) -> void:
 	exp_orb_pool.append(orb)
 
 
+## 敵弾をスポーンする
+##
+## @param position: スポーン位置
+## @param direction: 弾丸の方向
+## @param damage: ダメージ量
+## @return: 生成された敵弾ノード
+func spawn_enemy_projectile(position: Vector2, direction: Vector2, damage: int) -> Node:
+	var projectile: Node = null
+
+	if enemy_projectile_pool.is_empty():
+		if active_enemy_projectiles.size() >= MAX_ENEMY_PROJECTILE_POOL_SIZE:
+			push_warning("PoolManager: 敵弾プール上限到達 count=%d" % active_enemy_projectiles.size())
+			return null
+
+		var scene_path: String = "res://scenes/weapons/enemy_projectile.tscn"
+		if not ResourceLoader.exists(scene_path):
+			push_error("PoolManager: 敵弾シーンが存在しません")
+			return null
+
+		var scene: PackedScene = load(scene_path)
+		if scene == null:
+			push_error("PoolManager: 敵弾シーンのロードに失敗")
+			return null
+
+		projectile = scene.instantiate()
+		add_child(projectile)
+	else:
+		projectile = enemy_projectile_pool.pop_back()
+
+	if projectile == null:
+		push_error("PoolManager: 敵弾の取得に失敗")
+		return null
+
+	if world_node != null:
+		projectile.reparent(world_node)
+
+	if projectile.has_method("initialize"):
+		projectile.initialize(position, direction, damage)
+
+	projectile.process_mode = Node.PROCESS_MODE_PAUSABLE
+	projectile.visible = true
+
+	active_enemy_projectiles.append(projectile)
+	return projectile
+
+
+## 敵弾をプールに返却する
+##
+## @param projectile: 返却する敵弾ノード
+func return_enemy_projectile(projectile: Node) -> void:
+	if projectile == null:
+		push_warning("PoolManager.return_enemy_projectile: projectileがnullです")
+		return
+
+	projectile.visible = false
+	projectile.process_mode = Node.PROCESS_MODE_DISABLED
+
+	if projectile is Area2D:
+		projectile.set_deferred("monitoring", false)
+		projectile.set_deferred("monitorable", false)
+
+	projectile.call_deferred("reparent", self)
+
+	active_enemy_projectiles.erase(projectile)
+	enemy_projectile_pool.append(projectile)
+
+
 ## 全てのアクティブオブジェクトをプールに返却する
 ##
 ## ゲーム終了時・ゲーム開始時に呼ばれる。
@@ -394,6 +464,11 @@ func clear_all_active() -> void:
 	var orbs: Array = active_exp_orbs.duplicate()
 	for orb in orbs:
 		return_exp_orb(orb)
+
+	# 敵弾を全て返却
+	var enemy_projs: Array = active_enemy_projectiles.duplicate()
+	for proj in enemy_projs:
+		return_enemy_projectile(proj)
 
 
 ## 敵プールの存在確認・初期化（内部メソッド）
@@ -419,5 +494,6 @@ func debug_print_status() -> void:
 		var active_count: int = active_enemies[scene_path].size()
 		print("  %s: pool=%d active=%d" % [scene_path, pool_count, active_count])
 	print("Projectiles: pool=%d active=%d" % [projectile_pool.size(), active_projectiles.size()])
+	print("EnemyProjectiles: pool=%d active=%d" % [enemy_projectile_pool.size(), active_enemy_projectiles.size()])
 	print("ExpOrbs: pool=%d active=%d" % [exp_orb_pool.size(), active_exp_orbs.size()])
 	print("========================")

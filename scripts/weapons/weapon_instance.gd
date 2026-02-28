@@ -16,19 +16,41 @@ var current_level: int = 1
 var owner_player: Node = null
 var _attack_timer: float = 0.0
 
-## Orbital武器用の衛星ノード
-var _orbital_nodes: Array = []
-var _orbital_angle: float = 0.0
+## BARRIER_DOT用
+var _barrier_node: Area2D = null
+var _barrier_enemies: Dictionary = {}
+var _dot_timer: float = 0.0
+
+## 多段攻撃用（MELEE_CIRCLE）
+var _multi_hit_remaining: int = 0
+var _multi_hit_timer: float = 0.0
+
+## 連射用（SHOTGUN）
+var _burst_remaining: int = 0
+var _burst_timer: float = 0.0
+var _burst_direction: Vector2 = Vector2.ZERO
+
+## 診断用
+var _debug_logged: bool = false
 
 ## エフェクト用プリロード
 const MUZZLE_FLASH_SCENE = preload("res://scenes/effects/muzzle_flash.tscn")
 
+## class_name解決順序の問題を回避するためpreload
+const _MeleeArea = preload("res://scripts/weapons/melee_area.gd")
+const _PlacedZone = preload("res://scripts/weapons/placed_zone.gd")
+
+
 func _exit_tree() -> void:
-	# Orbital衛星ノードをクリーンアップ（Playerの子として追加されているため手動で解放）
-	for orbital in _orbital_nodes:
-		if is_instance_valid(orbital):
-			orbital.queue_free()
-	_orbital_nodes.clear()
+	# バリアノードのクリーンアップ
+	if _barrier_node != null and is_instance_valid(_barrier_node):
+		# スローした敵の速度を元に戻す
+		for enemy in _barrier_enemies:
+			if is_instance_valid(enemy) and "speed" in enemy:
+				enemy.speed = _barrier_enemies[enemy]
+		_barrier_enemies.clear()
+		_barrier_node.queue_free()
+		_barrier_node = null
 
 
 func initialize(weapon: Weapon, level: int, player: Node) -> void:
@@ -43,98 +65,378 @@ func initialize(weapon: Weapon, level: int, player: Node) -> void:
 	current_level = level
 	owner_player = player
 
-	# Orbital武器の場合は衛星を初期化
-	if weapon.attack_type == Weapon.AttackType.ORBITAL:
-		_initialize_orbital_nodes()
+	# BARRIER_DOT武器は初回から展開
+	if weapon.attack_type == Weapon.AttackType.BARRIER_DOT:
+		_initialize_barrier()
 
 	# 範囲拡大を適用
 	_apply_area_multiplier()
 
+
 func _process(delta: float) -> void:
+	if not _debug_logged:
+		_debug_logged = true
+		print("[WeaponInstance診断] weapon=%s, type=%s, player=%s" % [
+			weapon_data.weapon_name if weapon_data else "null",
+			weapon_data.attack_type if weapon_data else -1,
+			owner_player != null
+		])
 	if weapon_data == null or owner_player == null:
 		return
 
 	_attack_timer += delta
 
-	# Orbital武器は常に更新が必要
-	if weapon_data.attack_type == Weapon.AttackType.ORBITAL:
-		_update_orbital(delta)
+	# バリアDoTの更新
+	if weapon_data.attack_type == Weapon.AttackType.BARRIER_DOT:
+		_update_barrier_dot(delta)
+
+	# 多段攻撃の処理（MELEE_CIRCLE）
+	if _multi_hit_remaining > 0:
+		_multi_hit_timer += delta
+		var interval = 0.2 if current_level >= 5 else 0.3
+		if _multi_hit_timer >= interval:
+			_multi_hit_timer = 0.0
+			_multi_hit_remaining -= 1
+			var damage = _calculate_damage()
+			var radius = weapon_data.melee_radius + (current_level - 1) * 10.0
+			_spawn_melee_area(damage, radius)
+
+	# 連射の処理（SHOTGUN）
+	if _burst_remaining > 0:
+		_burst_timer += delta
+		if _burst_timer >= 0.15:
+			_burst_timer = 0.0
+			_burst_remaining -= 1
+			var damage = _calculate_damage()
+			var counts = [3, 5, 5, 7, 7]
+			var count = counts[clampi(current_level - 1, 0, 4)]
+			_fire_shotgun_burst(_burst_direction, damage, count)
 
 	if _can_attack():
 		_attack()
 		_attack_timer = 0.0
 
+
 func level_up() -> void:
 	current_level += 1
 	print("武器レベルアップ: %s Lv.%d" % [weapon_data.weapon_name, current_level])
 
+	# BARRIER_DOT: レベルアップ時にバリアの半径を更新
+	if weapon_data != null and weapon_data.attack_type == Weapon.AttackType.BARRIER_DOT:
+		if _barrier_node != null and is_instance_valid(_barrier_node):
+			var shape_node = _barrier_node.get_node_or_null("CollisionShape2D")
+			if shape_node != null and shape_node.shape is CircleShape2D:
+				shape_node.shape.radius = weapon_data.barrier_radius + (current_level - 1) * 15.0
+
+
 func _can_attack() -> bool:
 	if weapon_data == null:
 		return false
+	# BARRIER_DOTはattack()を使わない（_process内で管理）
+	if weapon_data.attack_type == Weapon.AttackType.BARRIER_DOT:
+		return false
 	return _attack_timer >= weapon_data.attack_interval
+
 
 func _attack() -> void:
 	if weapon_data == null or owner_player == null:
 		return
 
 	match weapon_data.attack_type:
-		Weapon.AttackType.STRAIGHT_SHOT:
-			_attack_straight_shot()
-		Weapon.AttackType.AREA_BLAST:
-			_attack_area_blast()
-		Weapon.AttackType.HOMING_MISSILE:
-			_attack_homing_missile()
-		Weapon.AttackType.PENETRATING:
-			_attack_penetrating()
-		Weapon.AttackType.ORBITAL:
-			_attack_orbital()
-		Weapon.AttackType.CHAIN:
-			_attack_chain()
+		Weapon.AttackType.MELEE_CIRCLE:
+			_attack_melee_circle()
+		Weapon.AttackType.RUSH_EXPLODE:
+			_attack_rush_explode()
+		Weapon.AttackType.PENETRATE_LINE:
+			_attack_penetrate_line()
+		Weapon.AttackType.SPLIT_SHOT:
+			_attack_split_shot()
+		Weapon.AttackType.HOMING:
+			_attack_homing()
+		Weapon.AttackType.SHOTGUN:
+			_attack_shotgun()
+		Weapon.AttackType.PLACE_DOT:
+			_attack_place_dot()
 
-func _attack_straight_shot() -> void:
-	# 常に最も近い敵の方向に発射（ホーミングなし）
-	var nearest_enemy = _find_nearest_enemy()
+
+## W1. MELEE_CIRCLE（マクロファージ・ブレード）
+func _attack_melee_circle() -> void:
+	var damage = _calculate_damage()
+	var radius = weapon_data.melee_radius + (current_level - 1) * 10.0
+	var hit_count = 3 if current_level >= 5 else (2 if current_level >= 3 else 1)
+
+	_spawn_melee_area(damage, radius)
+	AudioManager.play_sfx("shoot", -8.0)
+
+	if hit_count > 1:
+		_multi_hit_remaining = hit_count - 1
+		_multi_hit_timer = 0.0
+
+
+func _spawn_melee_area(dmg: int, radius: float) -> void:
+	var area = _MeleeArea.new()
+	var game_scene = owner_player.get_parent()
+	if game_scene:
+		game_scene.add_child(area)
+		area.initialize(owner_player.global_position, dmg, radius)
+	_spawn_melee_effect(owner_player.global_position, radius)
+
+
+## W2. RUSH_EXPLODE（ニュートロ・チャージ）
+func _attack_rush_explode() -> void:
+	var nearest = _find_nearest_enemy()
 	var direction: Vector2
-
-	if nearest_enemy != null:
-		# 最寄りの敵方向に発射
-		direction = (nearest_enemy.global_position - owner_player.global_position).normalized()
+	if nearest:
+		direction = (nearest.global_position - owner_player.global_position).normalized()
 	else:
-		# 敵がいない場合は進行方向、または右方向
 		direction = owner_player.velocity.normalized()
 		if direction == Vector2.ZERO:
 			direction = Vector2.RIGHT
 
 	var damage = _calculate_damage()
-	_spawn_projectile(owner_player.global_position, direction, damage, false)
+	var count = 3 if current_level >= 5 else (2 if current_level >= 3 else 1)
+	var expl_radius = weapon_data.explosion_radius + (current_level - 1) * 7.5
 
-	# マルチショット処理
-	_apply_multishot(owner_player.global_position, direction, damage, false)
+	for i in range(count):
+		var angle_offset = 0.0
+		if count > 1:
+			angle_offset = deg_to_rad(15.0) * (i - (count - 1) / 2.0)
+		var dir = direction.rotated(angle_offset)
+		_spawn_rush_projectile(owner_player.global_position, dir, damage, expl_radius)
 
-func _attack_area_blast() -> void:
-	var damage = _calculate_damage()
-	var angle_step = TAU / weapon_data.projectile_count  # 360度を等分
+	AudioManager.play_sfx("shoot", -8.0)
 
-	for i in range(weapon_data.projectile_count):
-		var angle = angle_step * i
-		var direction = Vector2(cos(angle), sin(angle))
-		_spawn_projectile(owner_player.global_position, direction, damage, false)
 
-func _attack_homing_missile() -> void:
-	var direction = owner_player.velocity.normalized()
-	if direction == Vector2.ZERO:
-		# 停止中は最寄りの敵方向に発射
-		var nearest_enemy = _find_nearest_enemy()
-		if nearest_enemy != null:
-			direction = (nearest_enemy.global_position - owner_player.global_position).normalized()
-		else:
+func _spawn_rush_projectile(pos: Vector2, dir: Vector2, dmg: int, expl_radius: float) -> void:
+	var projectile = PoolManager.spawn_projectile(pos, dir, dmg)
+	if projectile != null:
+		projectile.speed = weapon_data.rush_speed
+		projectile.attack_type = weapon_data.attack_type
+		projectile.explosion_radius = expl_radius
+		_spawn_muzzle_flash(pos)
+
+
+## W3. PENETRATE_LINE（キラーTレーザー）
+func _attack_penetrate_line() -> void:
+	var nearest = _find_nearest_enemy()
+	var direction: Vector2
+	if nearest:
+		direction = (nearest.global_position - owner_player.global_position).normalized()
+	else:
+		direction = owner_player.velocity.normalized()
+		if direction == Vector2.ZERO:
 			direction = Vector2.RIGHT
 
 	var damage = _calculate_damage()
-	_spawn_projectile(owner_player.global_position, direction, damage, true)
+	var count = 3 if current_level >= 5 else (2 if current_level >= 3 else 1)
 
-	# マルチショット処理
-	_apply_multishot(owner_player.global_position, direction, damage, true)
+	for i in range(count):
+		var angle_offset = 0.0
+		if count > 1:
+			angle_offset = deg_to_rad(10.0) * (i - (count - 1) / 2.0)
+		var dir = direction.rotated(angle_offset)
+		_spawn_projectile(owner_player.global_position, dir, damage, false, -1)  # 無限貫通
+
+	AudioManager.play_sfx("shoot", -8.0)
+
+
+## W4. SPLIT_SHOT（抗体スプリッター）
+func _attack_split_shot() -> void:
+	var nearest = _find_nearest_enemy()
+	var direction: Vector2
+	if nearest:
+		direction = (nearest.global_position - owner_player.global_position).normalized()
+	else:
+		direction = owner_player.velocity.normalized()
+		if direction == Vector2.ZERO:
+			direction = Vector2.RIGHT
+
+	var damage = _calculate_damage()
+	var projectile = PoolManager.spawn_projectile(owner_player.global_position, direction, damage)
+	if projectile:
+		projectile.speed = weapon_data.projectile_speed
+		projectile.attack_type = weapon_data.attack_type
+		projectile.split_count = weapon_data.split_count + (1 if current_level >= 2 else 0) + (1 if current_level >= 4 else 0)
+		projectile.split_generation = 3 if current_level >= 5 else (2 if current_level >= 3 else 1)
+
+	_spawn_muzzle_flash(owner_player.global_position)
+	AudioManager.play_sfx("shoot", -10.0)
+
+
+## W5. HOMING（ナノ・ホーミング球）
+func _attack_homing() -> void:
+	var nearest = _find_nearest_enemy()
+	var direction: Vector2
+	if nearest:
+		direction = (nearest.global_position - owner_player.global_position).normalized()
+	else:
+		direction = owner_player.velocity.normalized()
+		if direction == Vector2.ZERO:
+			direction = Vector2.RIGHT
+
+	var damage = _calculate_damage()
+	var counts = [1, 2, 3, 3, 5]
+	var count = counts[clampi(current_level - 1, 0, 4)]
+
+	for i in range(count):
+		var angle_offset = deg_to_rad(20.0) * (i - (count - 1) / 2.0) if count > 1 else 0.0
+		var dir = direction.rotated(angle_offset)
+		_spawn_projectile(owner_player.global_position, dir, damage, true)
+
+	_spawn_muzzle_flash(owner_player.global_position)
+	AudioManager.play_sfx("shoot", -10.0)
+
+
+## W6. BARRIER_DOT（サイトカイン・リング）
+## 初回の_attack()呼び出しはないが、initialize()からバリアを展開する
+func _attack_barrier_dot() -> void:
+	# _can_attack()でfalseを返すため、このメソッドは呼ばれない
+	# バリアはinitialize()で展開済み
+	pass
+
+
+func _initialize_barrier() -> void:
+	if _barrier_node != null:
+		return  # 既に展開済み
+
+	_barrier_node = Area2D.new()
+	_barrier_node.name = "CytokineBarrier"
+
+	var shape_node = CollisionShape2D.new()
+	var circle = CircleShape2D.new()
+	circle.radius = weapon_data.barrier_radius + (current_level - 1) * 15.0
+	shape_node.shape = circle
+	_barrier_node.add_child(shape_node)
+
+	_barrier_node.collision_layer = 0
+	_barrier_node.set_collision_layer_value(6, true)
+	_barrier_node.collision_mask = 0
+	_barrier_node.set_collision_mask_value(2, true)
+
+	_barrier_node.body_entered.connect(_on_barrier_entered)
+	_barrier_node.body_exited.connect(_on_barrier_exited)
+
+	owner_player.add_child(_barrier_node)
+
+	# バリアビジュアルを追加
+	var radius = weapon_data.barrier_radius + (current_level - 1) * 15.0
+	_add_barrier_visual(radius)
+
+
+func _on_barrier_entered(body: Node2D) -> void:
+	if body.has_method("take_damage") and body is CharacterBody2D:
+		if _barrier_enemies.has(body):
+			return
+		var original_speed = body.speed if "speed" in body else 100.0
+		_barrier_enemies[body] = original_speed
+		var slow_factors = [0.6, 0.55, 0.5, 0.45, 0.35]
+		var slow = slow_factors[clampi(current_level - 1, 0, 4)]
+		body.speed = original_speed * slow
+
+
+func _on_barrier_exited(body: Node2D) -> void:
+	if _barrier_enemies.has(body):
+		if is_instance_valid(body) and "speed" in body:
+			body.speed = _barrier_enemies[body]
+		_barrier_enemies.erase(body)
+
+
+func _update_barrier_dot(delta: float) -> void:
+	if _barrier_node == null or not is_instance_valid(_barrier_node):
+		return
+
+	# 無効なエントリのクリーンアップ
+	var invalid_enemies: Array = []
+	for enemy in _barrier_enemies:
+		if not is_instance_valid(enemy) or not enemy.is_inside_tree():
+			invalid_enemies.append(enemy)
+	for enemy in invalid_enemies:
+		_barrier_enemies.erase(enemy)
+
+	_dot_timer += delta
+	var intervals = [0.8, 0.7, 0.6, 0.5, 0.4]
+	var interval = intervals[clampi(current_level - 1, 0, 4)]
+
+	if _dot_timer >= interval:
+		_dot_timer -= interval
+		var damages = [5, 7, 9, 12, 15]
+		var dot_dmg = damages[clampi(current_level - 1, 0, 4)]
+
+		# WeaponManagerのダメージ倍率を適用
+		var weapon_manager = owner_player.get_node_or_null("WeaponManager")
+		if weapon_manager:
+			dot_dmg = int(dot_dmg * weapon_manager.get_damage_multiplier())
+
+		var bodies = _barrier_node.get_overlapping_bodies()
+		for body in bodies:
+			if body.has_method("take_damage"):
+				body.take_damage(dot_dmg)
+
+
+## W7. SHOTGUN（ファゴサイト・バースト）
+func _attack_shotgun() -> void:
+	var nearest = _find_nearest_enemy()
+	var direction: Vector2
+	if nearest:
+		direction = (nearest.global_position - owner_player.global_position).normalized()
+	else:
+		direction = owner_player.velocity.normalized()
+		if direction == Vector2.ZERO:
+			direction = Vector2.RIGHT
+
+	var damage = _calculate_damage()
+	var counts = [3, 5, 5, 7, 7]
+	var count = counts[clampi(current_level - 1, 0, 4)]
+
+	_fire_shotgun_burst(direction, damage, count)
+
+	# 2連射（Lv3以降）
+	if current_level >= 3:
+		_burst_remaining = 1
+		_burst_timer = 0.0
+		_burst_direction = direction
+
+	AudioManager.play_sfx("shoot", -8.0)
+
+
+func _fire_shotgun_burst(direction: Vector2, damage: int, count: int) -> void:
+	var spread = deg_to_rad(weapon_data.spread_angle)
+	for i in range(count):
+		var t = float(i) / float(max(count - 1, 1))
+		var angle_offset = lerp(-spread / 2.0, spread / 2.0, t)
+		var dir = direction.rotated(angle_offset)
+		var proj = PoolManager.spawn_projectile(owner_player.global_position, dir, damage)
+		if proj:
+			proj.speed = weapon_data.projectile_speed
+			proj.attack_type = weapon_data.attack_type
+			proj.lifetime = 0.6  # 短射程
+
+	_spawn_muzzle_flash(owner_player.global_position)
+
+
+## W8. PLACE_DOT（インフラマ・スパイク）
+func _attack_place_dot() -> void:
+	var damage = _calculate_damage()
+	var counts = [1, 2, 2, 3, 4]
+	var count = counts[clampi(current_level - 1, 0, 4)]
+	var duration = weapon_data.place_duration + (current_level - 1) * 0.5
+	var radius = weapon_data.place_radius + (current_level - 1) * 7.5
+
+	for i in range(count):
+		var offset_angle = randf() * TAU
+		var offset_dist = randf_range(100.0, 200.0)
+		var pos = owner_player.global_position + Vector2(cos(offset_angle), sin(offset_angle)) * offset_dist
+
+		var zone = _PlacedZone.new()
+		var game_scene = owner_player.get_parent()
+		if game_scene:
+			game_scene.add_child(zone)
+			zone.initialize(pos, damage, radius, duration, weapon_data.dot_interval)
+
+	AudioManager.play_sfx("shoot", -10.0)
+
+
+## 共通ユーティリティ
 
 func _calculate_damage() -> int:
 	if weapon_data == null or owner_player == null:
@@ -159,6 +461,7 @@ func _calculate_damage() -> int:
 
 	return base_damage
 
+
 func _spawn_projectile(pos: Vector2, dir: Vector2, dmg: int, homing: bool, pierce: int = 0) -> void:
 	if weapon_data == null:
 		return
@@ -167,14 +470,10 @@ func _spawn_projectile(pos: Vector2, dir: Vector2, dmg: int, homing: bool, pierc
 	if projectile != null:
 		projectile.speed = weapon_data.projectile_speed
 		projectile.is_homing = homing
-		projectile.attack_type = weapon_data.attack_type  # 武器タイプを設定
-		projectile.pierce_count = pierce  # 貫通回数を設定
+		projectile.attack_type = weapon_data.attack_type
+		projectile.pierce_count = pierce
+		_spawn_muzzle_flash(pos)
 
-		# マズルフラッシュエフェクト（Orbital以外）
-		if weapon_data.attack_type != Weapon.AttackType.ORBITAL:
-			_spawn_muzzle_flash(pos)
-			# 攻撃音再生
-			AudioManager.play_sfx("shoot", -10.0)
 
 func _find_nearest_enemy() -> Node:
 	var enemies = get_tree().get_nodes_in_group("enemies")
@@ -195,212 +494,13 @@ func _find_nearest_enemy() -> Node:
 	return nearest
 
 
-## 貫通攻撃（PENETRATING）
-func _attack_penetrating() -> void:
-	var direction = owner_player.velocity.normalized()
-	if direction == Vector2.ZERO:
-		var nearest_enemy = _find_nearest_enemy()
-		if nearest_enemy != null:
-			direction = (nearest_enemy.global_position - owner_player.global_position).normalized()
-		else:
-			direction = Vector2.RIGHT
-
-	var damage = _calculate_damage()
-	_spawn_projectile(owner_player.global_position, direction, damage, false, weapon_data.pierce_count)
-
-	# マルチショット処理
-	_apply_multishot(owner_player.global_position, direction, damage, false, weapon_data.pierce_count)
-
-
-## 周回攻撃（ORBITAL）
-func _attack_orbital() -> void:
-	# Orbital武器は常時ダメージを与え続けるため、attack_intervalは0に設定される
-	# 実際の攻撃処理は_update_orbital()内で行われる
-	pass
-
-
-## 連鎖攻撃（CHAIN）
-func _attack_chain() -> void:
-	var nearest_enemy = _find_nearest_enemy()
-	if nearest_enemy == null:
-		return
-
-	var damage = _calculate_damage()
-	AudioManager.play_sfx("shoot", -8.0)
-	_deal_chain_damage(nearest_enemy, damage, weapon_data.chain_count, [])
-
-
-## Orbital武器の衛星ノードを初期化
-func _initialize_orbital_nodes() -> void:
-	# 既存の衛星をクリア
-	for node in _orbital_nodes:
-		if is_instance_valid(node):
-			node.queue_free()
-	_orbital_nodes.clear()
-
-	# 新しい衛星を生成（Area2Dベース）
-	for i in range(weapon_data.orbital_count):
-		var orbital = Area2D.new()
-		orbital.name = "Orbital_%d" % i
-
-		# コリジョン設定
-		orbital.collision_layer = 0
-		orbital.collision_mask = 2  # Layer 2 (敵)
-
-		# コリジョンシェイプを追加
-		var shape = CollisionShape2D.new()
-		var circle = CircleShape2D.new()
-		circle.radius = 8.0  # 衛星のサイズ
-		shape.shape = circle
-		orbital.add_child(shape)
-
-		# ビジュアル（ColorRect）を追加
-		var visual = ColorRect.new()
-		visual.size = Vector2(16, 16)
-		visual.position = Vector2(-8, -8)  # 中心に配置
-		visual.color = Color.CYAN
-		orbital.add_child(visual)
-
-		# シグナル接続
-		orbital.body_entered.connect(_on_orbital_hit.bind(orbital))
-
-		# プレイヤーの子として追加
-		owner_player.add_child(orbital)
-		_orbital_nodes.append(orbital)
-
-
-## Orbital武器の位置更新
-func _update_orbital(delta: float) -> void:
-	if _orbital_nodes.is_empty():
-		return
-
-	_orbital_angle += weapon_data.orbital_speed * delta
-
-	# 範囲拡大を考慮した半径
-	var weapon_manager = owner_player.get_node_or_null("WeaponManager")
-	var effective_radius = weapon_data.orbital_radius
-	if weapon_manager != null:
-		effective_radius *= weapon_manager.area_multiplier
-
-	for i in range(_orbital_nodes.size()):
-		var orbital = _orbital_nodes[i]
-		if not is_instance_valid(orbital):
-			continue
-
-		# 各衛星の角度を計算（等間隔に配置）
-		var angle_offset = (TAU / _orbital_nodes.size()) * i
-		var angle = _orbital_angle + angle_offset
-
-		# 円周上の位置を計算
-		var offset = Vector2(
-			cos(angle) * effective_radius,
-			sin(angle) * effective_radius
-		)
-
-		# プレイヤーからの相対位置に配置
-		orbital.position = offset
-
-
-## Orbital衛星の衝突処理
-func _on_orbital_hit(body: Node2D, orbital: Area2D) -> void:
-	if body.has_method("take_damage"):
-		var damage = _calculate_damage()
-		body.take_damage(damage)
-
-
-## 連鎖ダメージ処理（再帰）
-func _deal_chain_damage(target: Node, damage: int, remaining_chains: int, hit_list: Array) -> void:
-	if target == null or not is_instance_valid(target):
-		return
-	if remaining_chains <= 0:
-		return
-	if hit_list.has(target):
-		return  # 同じ敵に2度当たらないようにする
-
-	# ダメージを与える
-	if target.has_method("take_damage"):
-		target.take_damage(damage)
-
-	hit_list.append(target)
-
-	# 次の連鎖対象を探す
-	if remaining_chains > 1:
-		var next_target = _find_nearest_enemy_from(target, hit_list)
-		if next_target != null:
-			var next_damage = int(damage * weapon_data.chain_damage_falloff)
-			_deal_chain_damage(next_target, next_damage, remaining_chains - 1, hit_list)
-
-
-## 指定位置から最も近い敵を探す（除外リスト付き）
-func _find_nearest_enemy_from(from_node: Node, exclude_list: Array) -> Node:
-	var enemies = get_tree().get_nodes_in_group("enemies")
-	if enemies.is_empty():
-		return null
-
-	var nearest: Node = null
-	# 範囲拡大を考慮した連鎖範囲
-	var weapon_manager = owner_player.get_node_or_null("WeaponManager")
-	var effective_range = weapon_data.chain_range
-	if weapon_manager != null:
-		effective_range *= weapon_manager.area_multiplier
-
-	var min_distance: float = effective_range * effective_range  # 範囲制限
-
-	for enemy in enemies:
-		if enemy == null or not is_instance_valid(enemy):
-			continue
-		if exclude_list.has(enemy):
-			continue
-
-		var distance = from_node.global_position.distance_squared_to(enemy.global_position)
-		if distance < min_distance:
-			min_distance = distance
-			nearest = enemy
-
-	return nearest
-
-
-## マルチショット処理（追加弾を発射）
-func _apply_multishot(pos: Vector2, base_direction: Vector2, damage: int, homing: bool, pierce: int = 0) -> void:
-	var weapon_manager = owner_player.get_node_or_null("WeaponManager")
-	if weapon_manager == null or weapon_manager.multishot_count <= 0:
-		return
-
-	# 追加弾数分だけ発射（基準方向の両側に扇状に展開）
-	var spread_angle = deg_to_rad(15.0)  # 1弾あたり15度の角度差
-	var half_count = weapon_manager.multishot_count / 2
-
-	for i in range(weapon_manager.multishot_count):
-		# 中心から左右に交互に配置
-		var offset_index = (i + 1) / 2
-		var angle_offset = spread_angle * offset_index
-		if i % 2 == 0:
-			angle_offset = -angle_offset  # 偶数は左側
-
-		# 方向ベクトルを回転
-		var rotated_direction = base_direction.rotated(angle_offset)
-		_spawn_projectile(pos, rotated_direction, damage, homing, pierce)
-
-
-## 範囲拡大を適用（武器の各種範囲パラメータに反映）
+## 範囲拡大を適用（各攻撃メソッド内で動的に適用するため、ここでは何もしない）
 func _apply_area_multiplier() -> void:
 	var weapon_manager = owner_player.get_node_or_null("WeaponManager")
 	if weapon_manager == null or weapon_data == null:
 		return
-
-	var multiplier = weapon_manager.area_multiplier
-
-	# Orbital武器の場合、回転半径を拡大
-	if weapon_data.attack_type == Weapon.AttackType.ORBITAL:
-		for orbital in _orbital_nodes:
-			if is_instance_valid(orbital):
-				# 衛星のコリジョンサイズも拡大
-				var shape_node = orbital.get_node_or_null("CollisionShape2D")
-				if shape_node != null and shape_node.shape is CircleShape2D:
-					shape_node.shape.radius *= multiplier
-
-	# Chain武器の場合、連鎖範囲を拡大（weapon_dataを直接変更しないよう注意）
-	# 実際の範囲計算は_find_nearest_enemy_from()内で行われるため、ここでは何もしない
+	# area_multiplierは各攻撃メソッド内で動的に適用するため、ここでは何もしない
+	pass
 
 
 ## マズルフラッシュエフェクトを生成
@@ -415,3 +515,95 @@ func _spawn_muzzle_flash(pos: Vector2) -> void:
 		flash.global_position = pos
 		flash.emitting = true
 		flash.get_node("Timer").start()
+
+
+## 汎用パーティクルヘルパー
+func _spawn_particles(pos: Vector2, amount: int, lifetime: float, color: Color,
+		velocity_min: float = 50.0, velocity_max: float = 100.0,
+		spread: float = 180.0, scale_min: float = 2.0, scale_max: float = 4.0) -> void:
+	var particles = CPUParticles2D.new()
+	particles.emitting = true
+	particles.one_shot = true
+	particles.amount = amount
+	particles.lifetime = lifetime
+	particles.explosiveness = 1.0
+	particles.direction = Vector2.ZERO
+	particles.spread = spread
+	particles.initial_velocity_min = velocity_min
+	particles.initial_velocity_max = velocity_max
+	particles.damping_min = 150.0
+	particles.damping_max = 250.0
+	particles.scale_amount_min = scale_min
+	particles.scale_amount_max = scale_max
+	particles.color = color
+	particles.gravity = Vector2.ZERO
+
+	var game_scene = owner_player.get_parent()
+	if game_scene:
+		game_scene.add_child(particles)
+		particles.global_position = pos
+		var timer = Timer.new()
+		timer.wait_time = lifetime + 0.3
+		timer.one_shot = true
+		timer.timeout.connect(particles.queue_free)
+		particles.add_child(timer)
+		timer.start()
+
+
+## W1. マクロファージ・ブレード斬撃波パーティクル
+func _spawn_melee_effect(pos: Vector2, radius: float) -> void:
+	var particles = CPUParticles2D.new()
+	particles.emitting = true
+	particles.one_shot = true
+	particles.amount = 12
+	particles.lifetime = 0.3
+	particles.explosiveness = 1.0
+	particles.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+	particles.emission_sphere_radius = radius * 0.5
+	particles.direction = Vector2.ZERO
+	particles.spread = 180.0
+	particles.initial_velocity_min = 80.0
+	particles.initial_velocity_max = 120.0
+	particles.damping_min = 200.0
+	particles.damping_max = 300.0
+	particles.scale_amount_min = 2.0
+	particles.scale_amount_max = 4.0
+	particles.color = Color(0.0, 0.9, 1.0, 0.8)  # シアン
+	particles.gravity = Vector2.ZERO
+
+	var game_scene = owner_player.get_parent()
+	if game_scene:
+		game_scene.add_child(particles)
+		particles.global_position = pos
+		var timer = Timer.new()
+		timer.wait_time = 0.5
+		timer.one_shot = true
+		timer.timeout.connect(particles.queue_free)
+		particles.add_child(timer)
+		timer.start()
+
+
+## W6. サイトカイン・リング バリアビジュアル追加
+func _add_barrier_visual(radius: float) -> void:
+	# 半透明シアンの円（内側）
+	var visual = Polygon2D.new()
+	visual.name = "BarrierVisual"
+	var points = PackedVector2Array()
+	for i in range(32):
+		var angle = i * TAU / 32
+		points.append(Vector2(cos(angle), sin(angle)) * radius)
+	visual.polygon = points
+	visual.color = Color(0.0, 0.9, 1.0, 0.15)  # 半透明シアン
+	_barrier_node.add_child(visual)
+
+	# 外周リング
+	var ring = Line2D.new()
+	ring.name = "BarrierRing"
+	var ring_points = PackedVector2Array()
+	for i in range(33):
+		var angle = i * TAU / 32
+		ring_points.append(Vector2(cos(angle), sin(angle)) * radius)
+	ring.points = ring_points
+	ring.width = 2.0
+	ring.default_color = Color(0.0, 0.9, 1.0, 0.4)
+	_barrier_node.add_child(ring)

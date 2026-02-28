@@ -21,8 +21,8 @@ func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
 
-	# Layer 4: Hazardレイヤー
-	set_collision_layer_value(4, true)
+	# Layer 7: Hazardレイヤー（Layer 4は敵弾用）
+	set_collision_layer_value(7, true)
 	# Mask: Layer 1 (Player), Layer 2 (Enemy)
 	set_collision_mask_value(1, true)
 	set_collision_mask_value(2, true)

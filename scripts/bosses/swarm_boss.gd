@@ -43,10 +43,11 @@ func _enter_phase_2() -> void:
 ## 敵を召喚
 func _summon_minions(count: int) -> void:
 	for i in range(count):
-		var enemy = PoolManager.get_from_pool("basic_enemy")
-		if enemy:
-			var offset = Vector2(randf_range(-80, 80), randf_range(-80, 80))
-			enemy.global_position = global_position + offset
+		var offset = Vector2(randf_range(-80, 80), randf_range(-80, 80))
+		var spawn_pos = global_position + offset
+		var enemy = PoolManager.spawn_enemy("res://scenes/enemies/swarm_enemy.tscn", spawn_pos)
+		if enemy != null and enemy.has_method("initialize"):
+			enemy.initialize(spawn_pos, player)
 			enemy.modulate = Color.MAGENTA  # 召喚された敵の色
 
 	DebugConfig.log_debug("SwarmBoss", "%d体の敵を召喚!" % count)

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/weapon.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+weapon_name = "Nano Homing Orb"
+description = "敵を自動追尾するナノ弾"
+base_damage = 18
+attack_interval = 1.6
+attack_type = 4
+projectile_count = 1
+projectile_speed = 200.0

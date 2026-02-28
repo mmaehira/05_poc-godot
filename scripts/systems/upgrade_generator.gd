@@ -38,12 +38,14 @@ class UpgradeOption:
 
 ## 利用可能な武器リスト（プリロード）
 const AVAILABLE_WEAPONS: Array[String] = [
-	"res://resources/weapons/straight_shot.tres",
-	"res://resources/weapons/area_blast.tres",
-	"res://resources/weapons/homing_missile.tres",
-	"res://resources/weapons/laser_beam.tres",
-	"res://resources/weapons/orbital.tres",
-	"res://resources/weapons/lightning.tres"
+	"res://resources/weapons/macrophage_blade.tres",
+	"res://resources/weapons/neutro_charge.tres",
+	"res://resources/weapons/killer_t_laser.tres",
+	"res://resources/weapons/antibody_splitter.tres",
+	"res://resources/weapons/nano_homing_orb.tres",
+	"res://resources/weapons/cytokine_ring.tres",
+	"res://resources/weapons/phagocyte_burst.tres",
+	"res://resources/weapons/inflamma_spike.tres",
 ]
 
 ## レアリティの抽選確率（通常 70%, 強化 25%, 希少 5%）
@@ -62,9 +64,11 @@ func initialize(target_player: Node) -> void:
 func generate_options() -> Array[UpgradeOption]:
 	var options: Array[UpgradeOption] = []
 	var used_types: Array[UpgradeType] = []
+	var max_attempts: int = 30
 
 	# 3つの選択肢を生成（重複なし）
-	while options.size() < 3:
+	while options.size() < 3 and max_attempts > 0:
+		max_attempts -= 1
 		var option = _generate_single_option(used_types)
 		if option != null:
 			options.append(option)

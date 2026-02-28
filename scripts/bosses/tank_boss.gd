@@ -61,7 +61,7 @@ func _attack_barrage() -> void:
 
 ## ボス弾を発射
 func _spawn_boss_projectile(direction: Vector2) -> void:
-	var projectile = PoolManager.get_from_pool("projectile")
+a	var projectile = PoolManager.get_from_pool("projectile")
 	if projectile:
 		projectile.global_position = global_position
 		projectile.damage = damage
