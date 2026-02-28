@@ -32,6 +32,7 @@ func hide_menu() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("pause"):
 		if GameManager.current_state == GameManager.GameState.PAUSED:
+			get_viewport().set_input_as_handled()
 			_on_resume_pressed()
 
 

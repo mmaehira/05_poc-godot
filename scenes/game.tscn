@@ -159,6 +159,10 @@ func _on_pause_title_pressed() -> void:
 	if pause_menu != null:
 		pause_menu.hide_menu()
 	PoolManager.clear_all_active()
+	ComboManager.reset()
+	BossManager.reset()
+	if enemy_spawner != null:
+		enemy_spawner.reset_timer()
 	_show_title_screen()
 
 ## ポーズメニューを表示
