@@ -1,4 +1,51 @@
 {
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/notify.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/notify.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(gh pr:*)",
+      "Bash(cmd.exe /c \"where gh\")",
+      "Bash(cmd.exe /c \"where gh 2>&1\")",
+      "Bash(powershell.exe -Command \"Get-Command gh -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source\")",
+      "Bash(powershell.exe -Command \"winget list --name ''GitHub CLI'' 2>&1 | head -5\")",
+      "Bash(git config --global credential.helper)",
+      "Bash(git config credential.helper)",
+      "Bash(git config --list)",
+      "Bash(powershell.exe -Command \"[System.Security.Cryptography.ProtectedData]; Add-Type -AssemblyName System.Security; $creds = [System.Net.CredentialCache]::DefaultNetworkCredentials; echo ''ok''\")",
+      "Bash(powershell.exe -Command \":*)",
+      "Bash(git credential fill)",
+      "Read(//tmp/**)",
+      "Bash(git checkout main)",
+      "Bash(git pull origin main)",
+      "Bash(git stash)",
+      "Bash(git stash pop)"
+    ],
+    "additionalDirectories": [
+      "\\tmp"
+    ]
+  },
   "autoApprove": {
     "enabled": true,
     "tools": [

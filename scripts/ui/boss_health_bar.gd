@@ -10,6 +10,7 @@ func _ready() -> void:
 	BossManager.boss_spawned.connect(_on_boss_spawned)
 	BossManager.boss_defeated.connect(_on_boss_defeated)
 	BossManager.boss_health_changed.connect(_on_boss_health_changed)
+	GameManager.game_started.connect(_on_game_started)
 	hide()
 
 func _on_boss_spawned(boss: Node2D) -> void:
@@ -19,6 +20,9 @@ func _on_boss_spawned(boss: Node2D) -> void:
 	show()
 
 func _on_boss_defeated(_boss: Node2D) -> void:
+	hide()
+
+func _on_game_started() -> void:
 	hide()
 
 func _on_boss_health_changed(current: int, max: int) -> void:

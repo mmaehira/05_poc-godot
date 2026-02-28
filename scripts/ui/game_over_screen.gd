@@ -1,5 +1,5 @@
 # game_over_screen.gd
-# ゲームオーバー画面
+# ゲームオーバー / ステージクリア結果画面
 class_name GameOverScreen extends CanvasLayer
 
 signal retry_pressed()
@@ -29,11 +29,14 @@ func _ready() -> void:
 	title_button.pressed.connect(_on_title_pressed)
 
 
-## ゲームオーバー画面を表示
-func show_game_over(game_stats: GameStats) -> void:
+## 結果画面を表示（クリア/ゲームオーバー共通）
+func show_result(game_stats: GameStats, is_clear: bool) -> void:
 	if game_stats == null:
-		push_error("show_game_over: game_stats is null")
+		push_error("show_result: game_stats is null")
 		return
+
+	# タイトル文言を切り替え
+	title_label.text = "ステージクリア！" if is_clear else "ゲームオーバー"
 
 	# 統計データを表示
 	_display_stats(game_stats)

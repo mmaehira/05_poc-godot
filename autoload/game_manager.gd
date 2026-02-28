@@ -16,11 +16,12 @@ const GameStats = preload("res://resources/game_stats.gd")
 
 ## ゲーム状態の定義
 enum GameState {
-	TITLE,      ## タイトル画面
-	PLAYING,    ## プレイ中
-	PAUSED,     ## ポーズ中
-	UPGRADE,    ## レベルアップ選択中
-	GAME_OVER   ## ゲームオーバー
+	TITLE,        ## タイトル画面
+	PLAYING,      ## プレイ中
+	PAUSED,       ## ポーズ中
+	UPGRADE,      ## レベルアップ選択中
+	GAME_OVER,    ## ゲームオーバー
+	STAGE_CLEAR   ## ステージクリア
 }
 
 ## ゲーム状態変更時に発火
@@ -29,6 +30,8 @@ signal state_changed(new_state: GameState)
 signal game_started()
 ## ゲームオーバー時に発火
 signal game_over()
+## ステージクリア時に発火
+signal stage_cleared()
 
 ## 現在のゲーム状態
 var current_state: GameState = GameState.TITLE
@@ -56,7 +59,7 @@ func change_state(new_state: GameState) -> void:
 
 	# ポーズ制御（このクラスのみが実行する唯一の権限者）
 	match new_state:
-		GameState.UPGRADE, GameState.PAUSED, GameState.GAME_OVER:
+		GameState.UPGRADE, GameState.PAUSED, GameState.GAME_OVER, GameState.STAGE_CLEAR:
 			get_tree().paused = true
 		GameState.PLAYING:
 			get_tree().paused = false
@@ -109,6 +112,27 @@ func end_game() -> void:
 	# 状態変更とシグナル発火
 	change_state(GameState.GAME_OVER)
 	game_over.emit()
+
+
+## ステージをクリアする
+##
+## GameStatsの終了時刻・生存時間を記録し、STAGE_CLEAR状態に遷移。
+func clear_stage() -> void:
+	if game_stats == null:
+		push_warning("GameManager.clear_stage: game_statsがnullです")
+		game_stats = GameStats.new()
+
+	# 終了時刻と生存時間を記録
+	game_stats.end_time = Time.get_ticks_msec()
+	game_stats.survival_time = (game_stats.end_time - game_stats.start_time) / 1000.0
+
+	# 最終レベルを記録
+	if LevelSystem:
+		game_stats.final_level = LevelSystem.current_level
+
+	# 状態変更とシグナル発火
+	change_state(GameState.STAGE_CLEAR)
+	stage_cleared.emit()
 
 
 ## ゲームを一時停止する

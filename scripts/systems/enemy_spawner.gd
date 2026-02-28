@@ -36,6 +36,12 @@ func initialize(target_player: Node) -> void:
 	game_start_time = Time.get_ticks_msec()
 	_setup_spawn_table()
 
+## ゲーム再開時にスポーナー状態をリセット
+func reset_timer() -> void:
+	game_start_time = Time.get_ticks_msec()
+	_spawn_timer = 0.0
+	_setup_spawn_table()
+
 func _ready() -> void:
 	# GameSceneから初期化される
 	pass

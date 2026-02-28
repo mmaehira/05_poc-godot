@@ -7,10 +7,10 @@ signal boss_spawned(boss: Node2D)
 signal boss_defeated(boss: Node2D)
 signal boss_health_changed(current: int, max: int)
 
-const BOSS_SPAWN_INTERVAL: float = 180.0  # 3分
+const INITIAL_BOSS_TIME: float = 20.0    # 初回ボス出現までの秒数（テスト用）
 
 var current_boss: Node2D = null
-var time_until_next_boss: float = 20.0  # 初回は20秒後（テスト用）
+var time_until_next_boss: float = INITIAL_BOSS_TIME
 var boss_scenes: Array[PackedScene] = []
 
 func _ready() -> void:
@@ -23,7 +23,18 @@ func _load_boss_scenes() -> void:
 		preload("res://scenes/bosses/swarm_boss.tscn")
 	]
 
+## ボス状態を完全リセット
+func reset() -> void:
+	if current_boss != null and is_instance_valid(current_boss):
+		current_boss.queue_free()
+	current_boss = null
+	time_until_next_boss = INITIAL_BOSS_TIME
+
 func _process(delta: float) -> void:
+	# PLAYING状態でのみカウントダウン
+	if GameManager.current_state != GameManager.GameState.PLAYING:
+		return
+
 	if current_boss == null:
 		time_until_next_boss -= delta
 		if time_until_next_boss <= 0:
@@ -67,7 +78,6 @@ func _on_boss_defeated() -> void:
 	DebugConfig.log_info("BossManager", "ボス撃破!")
 	boss_defeated.emit(current_boss)
 	current_boss = null
-	time_until_next_boss = BOSS_SPAWN_INTERVAL
 
 	# ボス撃破音
 	AudioManager.play_sfx("levelup", -5.0)
