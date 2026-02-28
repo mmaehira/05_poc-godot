@@ -167,7 +167,7 @@ func reset() -> void:
 
 
 ## 初期武器リソース
-const INITIAL_WEAPON = preload("res://resources/weapons/straight_shot.tres")
+const INITIAL_WEAPON = preload("res://resources/weapons/macrophage_blade.tres")
 
 ## 初期武器を追加
 func _add_initial_weapon() -> void:

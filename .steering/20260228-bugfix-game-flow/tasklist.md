@@ -36,11 +36,22 @@
 - [x] Player.reset() で max_hp を BASE_MAX_HP にリセット（アップグレードによる増加が残る問題）
 - [x] BossHealthBar に GameManager.game_started シグナル接続（リトライ時にHPバーが残る問題）
 
+## コードレビュー第2回 - 追加修正
+
+- [x] Projectile.initialize() で全プロパティをリセット（speed/lifetime/is_homing/attack_type/pierce_count）
+- [x] _on_body_entered の爆発処理後に call_deferred("_return_to_pool") と return を追加
+- [x] UpgradeGenerator.generate_options() に max_attempts = 30 による無限ループ防止を追加
+- [x] MeleeArea._lifetime を 0.2 → 0.4 に延長、_checked_initial フラグで初期オーバーラップを遅延チェック
+- [x] WeaponInstance._update_barrier_dot() に無効な敵エントリのクリーンアップ処理を追加
+- [x] projectile_visual.gd の visual_type に set プロパティを追加し、_rebuild_visual() を切り出し
+
 ## 動作確認項目（Godotエディタで手動確認）
-- [ ] 起動時にタイトル画面が表示される
-- [ ] 「ゲーム開始」を押すまで敵が出現しない
-- [ ] ボス出現後にタイマーが停止する
-- [ ] ボスを倒すとステージクリア画面が表示される
-- [ ] Escapeキーでポーズメニューが開閉できる
-- [ ] リトライ後、武器がstraight_shotのみ・ボスが消えている
-- [ ] タイトルへ戻った後の再開時も状態がリセットされている
+- [x] 起動時にタイトル画面が表示される
+- [x] 「ゲーム開始」を押すまで敵が出現しない
+- [x] ボス出現後にタイマーが停止する
+- [x] ボスを倒すとステージクリア画面が表示される
+- [x] Escapeキーでポーズメニューが開閉できる
+- [x] リトライ後、武器がstraight_shotのみ・ボスが消えている
+- [x] リトライ後、HPが初期値（100）にリセットされている
+- [x] リトライ後、ボスHPバーUIが非表示になっている
+- [x] タイトルへ戻った後の再開時も状態がリセットされている

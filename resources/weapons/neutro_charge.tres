@@ -4,10 +4,11 @@
 
 [resource]
 script = ExtResource("1")
-weapon_name = "範囲爆発"
-description = "周囲全方位に弾丸を発射"
-base_damage = 15
-attack_interval = 2.0
+weapon_name = "Neutro Charge"
+description = "高速突進して爆発する好中球弾"
+base_damage = 30
+attack_interval = 2.5
 attack_type = 1
-projectile_count = 8
-projectile_speed = 250.0
+projectile_count = 1
+rush_speed = 500.0
+explosion_radius = 50.0

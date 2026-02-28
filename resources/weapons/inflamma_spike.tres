@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/weapon.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+weapon_name = "Inflamma Spike"
+description = "地面にダメージゾーンを設置"
+base_damage = 8
+attack_interval = 3.0
+attack_type = 7
+place_count = 1
+place_duration = 3.0
+place_radius = 35.0
+dot_interval = 0.5

@@ -15,6 +15,9 @@ signal died(enemy: Enemy)
 ## エフェクト用プリロード
 const EXPLOSION_SCENE = preload("res://scenes/effects/explosion.tscn")
 
+## AI Controller（preloadでclass_name解決順序の問題を回避）
+const _AIChasePlayer = preload("res://resources/ai_chase_player.gd")
+
 @export var max_hp: int = 30
 @export var speed: float = 100.0
 @export var contact_damage: int = 10
@@ -23,6 +26,7 @@ const EXPLOSION_SCENE = preload("res://scenes/effects/explosion.tscn")
 
 var current_hp: int = max_hp
 var player: Node = null
+var _debug_logged: bool = false
 
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 
@@ -37,7 +41,7 @@ func initialize(pos: Vector2, target_player: Node) -> void:
 
 	# デフォルトAI設定（毎回設定）
 	if ai_controller == null:
-		ai_controller = AIChasePlayer.new()
+		ai_controller = _AIChasePlayer.new()
 
 	# 衝突有効化
 	# Layer 2: 敵レイヤー
@@ -51,6 +55,14 @@ func _ready() -> void:
 	pass
 
 func _process(delta: float) -> void:
+	if not _debug_logged:
+		_debug_logged = true
+		print("[Enemy診断] %s: player=%s, ai_controller=%s (%s)" % [
+			get_script().get_class() if get_script() else "NoScript",
+			player != null,
+			ai_controller != null,
+			ai_controller.get_script().resource_path if ai_controller and ai_controller.get_script() else "null"
+		])
 	if player == null or ai_controller == null:
 		return
 

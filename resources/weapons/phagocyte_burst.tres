@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/weapon.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+weapon_name = "Phagocyte Burst"
+description = "前方に散弾を撃ち出す"
+base_damage = 8
+attack_interval = 1.4
+attack_type = 6
+projectile_count = 3
+projectile_speed = 350.0
+spread_angle = 30.0

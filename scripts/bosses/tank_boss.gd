@@ -61,15 +61,10 @@ func _attack_barrage() -> void:
 
 ## ボス弾を発射
 func _spawn_boss_projectile(direction: Vector2) -> void:
-	var projectile = PoolManager.get_from_pool("projectile")
+	var projectile = PoolManager.spawn_enemy_projectile(global_position, direction, damage)
 	if projectile:
-		projectile.global_position = global_position
-		projectile.damage = damage
-		projectile.direction = direction
 		projectile.speed = 200.0
 		projectile.modulate = Color.ORANGE_RED
-
-		# ボス弾は見た目を大きく
 		projectile.scale = Vector2(1.5, 1.5)
 
 		AudioManager.play_sfx("shoot", -12.0)

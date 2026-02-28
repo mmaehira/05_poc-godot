@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/weapon.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+weapon_name = "Antibody Splitter"
+description = "飛行中に分裂する抗体弾"
+base_damage = 12
+attack_interval = 1.8
+attack_type = 3
+projectile_count = 1
+projectile_speed = 250.0
+split_count = 3
+split_generation = 1
