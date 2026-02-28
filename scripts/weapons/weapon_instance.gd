@@ -345,12 +345,17 @@ func _update_barrier_dot(delta: float) -> void:
 	if _barrier_node == null or not is_instance_valid(_barrier_node):
 		return
 
-	# 無効なエントリのクリーンアップ
+	# 無効なエントリのクリーンアップ（速度復元を試みてから削除）
 	var invalid_enemies: Array = []
 	for enemy in _barrier_enemies:
 		if not is_instance_valid(enemy) or not enemy.is_inside_tree():
 			invalid_enemies.append(enemy)
+		elif enemy.process_mode == Node.PROCESS_MODE_DISABLED:
+			# プールに返却済みの敵も無効扱い
+			invalid_enemies.append(enemy)
 	for enemy in invalid_enemies:
+		if is_instance_valid(enemy) and "speed" in enemy:
+			enemy.speed = _barrier_enemies[enemy]
 		_barrier_enemies.erase(enemy)
 
 	_dot_timer += delta

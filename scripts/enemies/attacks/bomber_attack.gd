@@ -20,12 +20,12 @@ func attack() -> void:
 	_spawn_warning_circle(target_pos)
 
 	# 遅延爆発（game_sceneに追加：敵死亡でもタイマーが残る）
-	var timer = Timer.new()
-	timer.wait_time = EXPLOSION_DELAY
-	timer.one_shot = true
-	timer.timeout.connect(_explode.bind(target_pos))
 	var scene = _owner_enemy.get_parent()
 	if scene:
+		var timer = Timer.new()
+		timer.wait_time = EXPLOSION_DELAY
+		timer.one_shot = true
+		timer.timeout.connect(_explode.bind(target_pos, scene))
 		scene.add_child(timer)
 		timer.start()
 
@@ -66,10 +66,10 @@ func _spawn_warning_circle(pos: Vector2) -> void:
 	warning.add_child(timer)
 	timer.start()
 
-func _explode(pos: Vector2) -> void:
+func _explode(pos: Vector2, cached_scene: Node) -> void:
 	# MeleeArea で範囲ダメージ
 	var area = _MeleeArea.new()
-	var game_scene = _owner_enemy.get_parent() if is_instance_valid(_owner_enemy) else null
+	var game_scene = cached_scene if is_instance_valid(cached_scene) else null
 	if game_scene == null:
 		game_scene = _player.get_parent() if is_instance_valid(_player) else null
 	if game_scene:

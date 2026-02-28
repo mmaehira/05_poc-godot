@@ -14,7 +14,10 @@ var speed: float = 300.0
 var direction: Vector2 = Vector2.RIGHT
 var lifetime: float = 5.0
 var is_homing: bool = false
-var attack_type: int = 0  # 武器タイプを保持
+var attack_type: int = 0:  # 武器タイプを保持
+	set(value):
+		attack_type = value
+		_update_visual()
 var pierce_count: int = 0  # 貫通回数（0=貫通なし、-1=無限貫通）
 var _elapsed_time: float = 0.0
 var _hit_enemies: Array = []  # 既にヒットした敵を記録（連続ヒット防止）
