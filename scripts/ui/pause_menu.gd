@@ -12,6 +12,7 @@ signal title_pressed()
 
 func _ready() -> void:
 	visible = false
+	panel_container.visible = false
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
 	resume_button.pressed.connect(_on_resume_pressed)
@@ -21,11 +22,13 @@ func _ready() -> void:
 ## ポーズメニューを表示
 func show_menu() -> void:
 	visible = true
+	panel_container.visible = true
 
 
 ## ポーズメニューを非表示
 func hide_menu() -> void:
 	visible = false
+	panel_container.visible = false
 
 
 ## Escapeキーでアンポーズ（PROCESS_MODE_ALWAYSで動作）
@@ -38,9 +41,11 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _on_resume_pressed() -> void:
 	visible = false
+	panel_container.visible = false
 	resume_pressed.emit()
 
 
 func _on_title_pressed() -> void:
 	visible = false
+	panel_container.visible = false
 	title_pressed.emit()

@@ -35,6 +35,10 @@ func initialize(pos: Vector2, target_player: Node) -> void:
 	player = target_player
 	current_hp = max_hp
 
+	# プール再利用時の状態リセット
+	velocity = Vector2.ZERO
+	_debug_logged = false
+
 	# グループに追加（ホーミングミサイルの索敵用）
 	if not is_in_group("enemies"):
 		add_to_group("enemies")
@@ -48,6 +52,11 @@ func initialize(pos: Vector2, target_player: Node) -> void:
 	set_collision_layer_value(2, true)
 	# Mask: Layer 1 (Player, Projectile)
 	set_collision_mask_value(1, true)
+
+	# ビジュアルの状態リセット（プール再利用時）
+	var visual = get_node_or_null("Visual")
+	if visual and visual.has_method("reset_visual"):
+		visual.reset_visual()
 
 func _ready() -> void:
 	# CharacterBody2Dはbody_enteredシグナルを持たないため、

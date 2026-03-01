@@ -1,18 +1,18 @@
 extends Node2D
 
-## 弾丸の見た目を描画（免疫メカニックテーマ）
+## 弾丸の見た目を描画（武器アイコンテクスチャベース）
 ##
 ## 責務:
-## - 武器タイプに応じた形状・色
-## - メカニック・ナノテク風のビジュアル
+## - 武器アイコンをスプライトとして表示
+## - 武器タイプに応じたサイズ調整
 ## - 回転アニメーション
 
 enum VisualType {
-	PENETRATE,     ## 貫通ビーム - シアンの細長いビーム
-	RUSH,          ## 突進弾 - オレンジの丸弾
-	HOMING,        ## 追尾 - シアンのダイヤモンド
-	SPLIT,         ## 分裂弾 - 白〜青の小円
-	SHOTGUN,       ## 散弾 - オレンジの小粒
+	PENETRATE,     ## 貫通ビーム
+	RUSH,          ## 突進弾
+	HOMING,        ## 追尾
+	SPLIT,         ## 分裂弾
+	SHOTGUN,       ## 散弾
 }
 
 @export var visual_type: VisualType = VisualType.PENETRATE:
@@ -20,11 +20,22 @@ enum VisualType {
 		visual_type = value
 		_rebuild_visual()
 
+## 武器アイコンテクスチャ（setup()経由で設定すること）
+var weapon_texture: Texture2D = null
+
 var rotation_speed: float = 5.0
+
+var _sprite: Sprite2D = null
 
 
 func _ready() -> void:
 	_rebuild_visual()
+
+
+## テクスチャとビジュアルタイプを一括設定（リビルド1回で済む）
+func setup(texture: Texture2D, vtype: VisualType) -> void:
+	weapon_texture = texture  # setterなし：リビルドされない
+	visual_type = vtype       # setterあり：ここで1回だけリビルド
 
 
 func _rebuild_visual() -> void:
@@ -34,126 +45,109 @@ func _rebuild_visual() -> void:
 	# 既存の子ノードをクリア
 	for child in get_children():
 		child.queue_free()
+	_sprite = null
 
+	if weapon_texture != null:
+		_create_sprite_visual()
+	else:
+		_create_fallback_visual()
+
+
+func _create_sprite_visual() -> void:
+	_sprite = Sprite2D.new()
+	_sprite.texture = weapon_texture
+
+	# 武器タイプに応じたスケール（64pxアイコン想定）
+	var target_size: float
 	match visual_type:
 		VisualType.PENETRATE:
-			_create_penetrate_visual()
+			target_size = 20.0
 		VisualType.RUSH:
-			_create_rush_visual()
+			target_size = 22.0
 		VisualType.HOMING:
-			_create_homing_visual()
+			target_size = 18.0
 		VisualType.SPLIT:
-			_create_split_visual()
+			target_size = 14.0
 		VisualType.SHOTGUN:
-			_create_shotgun_visual()
+			target_size = 12.0
+
+	var tex_size = weapon_texture.get_size()
+	var scale_factor = target_size / max(tex_size.x, tex_size.y)
+	_sprite.scale = Vector2(scale_factor, scale_factor)
+
+	add_child(_sprite)
 
 
-func _create_penetrate_visual() -> void:
-	# シアンの細長いビーム
+## テクスチャ未設定時のフォールバック（プロシージャル描画）
+func _create_fallback_visual() -> void:
+	match visual_type:
+		VisualType.PENETRATE:
+			_create_penetrate_fallback()
+		VisualType.RUSH:
+			_create_rush_fallback()
+		VisualType.HOMING:
+			_create_homing_fallback()
+		VisualType.SPLIT:
+			_create_split_fallback()
+		VisualType.SHOTGUN:
+			_create_shotgun_fallback()
+
+
+func _create_penetrate_fallback() -> void:
 	var polygon = Polygon2D.new()
 	polygon.polygon = PackedVector2Array([
-		Vector2(-1.5, -6),
-		Vector2(1.5, -6),
-		Vector2(1.5, 6),
-		Vector2(-1.5, 6)
+		Vector2(-1.5, -6), Vector2(1.5, -6),
+		Vector2(1.5, 6), Vector2(-1.5, 6)
 	])
-	polygon.color = Color(0.0, 0.9, 1.0)  # シアン
+	polygon.color = Color(0.0, 0.9, 1.0)
 	add_child(polygon)
 
-	# グロー
-	var glow = Polygon2D.new()
-	glow.polygon = PackedVector2Array([
-		Vector2(-3, -8),
-		Vector2(3, -8),
-		Vector2(3, 8),
-		Vector2(-3, 8)
-	])
-	glow.color = Color(0.0, 0.9, 1.0, 0.3)
-	add_child(glow)
 
-
-func _create_rush_visual() -> void:
-	# オレンジの丸弾
+func _create_rush_fallback() -> void:
 	var polygon = Polygon2D.new()
-	var radius = 5.0
 	var points = PackedVector2Array()
 	for i in range(12):
 		var angle = i * TAU / 12
-		points.append(Vector2(cos(angle), sin(angle)) * radius)
+		points.append(Vector2(cos(angle), sin(angle)) * 5.0)
 	polygon.polygon = points
-	polygon.color = Color(1.0, 0.43, 0.0)  # オレンジ
+	polygon.color = Color(1.0, 0.43, 0.0)
 	add_child(polygon)
 
-	# 白グロー
-	var glow = Polygon2D.new()
-	glow.polygon = points
-	glow.color = Color(1.0, 0.8, 0.4, 0.3)
-	glow.scale = Vector2(1.5, 1.5)
-	add_child(glow)
 
-
-func _create_homing_visual() -> void:
-	# シアンのダイヤモンド
+func _create_homing_fallback() -> void:
 	var polygon = Polygon2D.new()
 	var size = 6.0
 	polygon.polygon = PackedVector2Array([
-		Vector2(0, -size),
-		Vector2(size, 0),
-		Vector2(0, size),
-		Vector2(-size, 0)
+		Vector2(0, -size), Vector2(size, 0),
+		Vector2(0, size), Vector2(-size, 0)
 	])
-	polygon.color = Color(0.0, 0.9, 1.0)  # シアン
+	polygon.color = Color(0.0, 0.9, 1.0)
 	add_child(polygon)
 
-	# 輪郭線
-	var outline = Line2D.new()
-	outline.width = 1.5
-	outline.default_color = Color(0.6, 1.0, 1.0)
-	outline.points = PackedVector2Array([
-		Vector2(0, -size),
-		Vector2(size, 0),
-		Vector2(0, size),
-		Vector2(-size, 0),
-		Vector2(0, -size)
-	])
-	add_child(outline)
 
-
-func _create_split_visual() -> void:
-	# 白〜青の小円
+func _create_split_fallback() -> void:
 	var polygon = Polygon2D.new()
-	var radius = 3.0
 	var points = PackedVector2Array()
 	for i in range(10):
 		var angle = i * TAU / 10
-		points.append(Vector2(cos(angle), sin(angle)) * radius)
+		points.append(Vector2(cos(angle), sin(angle)) * 3.0)
 	polygon.polygon = points
-	polygon.color = Color(0.27, 0.54, 1.0)  # 青
+	polygon.color = Color(0.27, 0.54, 1.0)
 	add_child(polygon)
 
-	# グロー
-	var glow = Polygon2D.new()
-	glow.polygon = points
-	glow.color = Color(0.6, 0.8, 1.0, 0.4)
-	glow.scale = Vector2(1.5, 1.5)
-	add_child(glow)
 
-
-func _create_shotgun_visual() -> void:
-	# オレンジの小粒
+func _create_shotgun_fallback() -> void:
 	var polygon = Polygon2D.new()
-	var radius = 2.5
 	var points = PackedVector2Array()
 	for i in range(8):
 		var angle = i * TAU / 8
-		points.append(Vector2(cos(angle), sin(angle)) * radius)
+		points.append(Vector2(cos(angle), sin(angle)) * 2.5)
 	polygon.polygon = points
-	polygon.color = Color(1.0, 0.57, 0.0)  # オレンジ
+	polygon.color = Color(1.0, 0.57, 0.0)
 	add_child(polygon)
 
 
 func _process(delta: float) -> void:
-	# ホーミングとラッシュは回転
 	if visual_type == VisualType.HOMING or visual_type == VisualType.RUSH:
 		rotation += rotation_speed * delta
 

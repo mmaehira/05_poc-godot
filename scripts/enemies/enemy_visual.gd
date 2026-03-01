@@ -198,6 +198,18 @@ func update_hp_ratio(hp_ratio: float) -> void:
 	original_modulate = modulate
 
 
+## プール再利用時にビジュアル状態をリセット
+func reset_visual() -> void:
+	modulate = Color.WHITE
+	original_modulate = Color.WHITE
+	damage_flash_timer = 0.0
+	current_frame = 0
+	current_row = AnimationRow.DOWN
+	animation_timer = 0.0
+	is_moving = true
+	_update_region()
+
+
 ## ダメージを受けた時の点滅エフェクト
 func flash_damage() -> void:
 	# 白く点滅

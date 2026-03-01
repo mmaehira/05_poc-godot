@@ -20,6 +20,7 @@ signal title_pressed()
 func _ready() -> void:
 	# 初期状態は非表示
 	visible = false
+	panel_container.visible = false
 
 	# process_mode設定（PAUSED時も動作）
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -43,6 +44,7 @@ func show_result(game_stats: GameStats, is_clear: bool) -> void:
 
 	# 画面を表示
 	visible = true
+	panel_container.visible = true
 
 
 ## 統計データを表示
@@ -68,10 +70,12 @@ func _display_stats(stats: GameStats) -> void:
 ## リトライボタン押下
 func _on_retry_pressed() -> void:
 	visible = false
+	panel_container.visible = false
 	retry_pressed.emit()
 
 
 ## タイトルボタン押下
 func _on_title_pressed() -> void:
 	visible = false
+	panel_container.visible = false
 	title_pressed.emit()

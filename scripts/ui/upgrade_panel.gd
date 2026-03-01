@@ -19,6 +19,7 @@ var current_options: Array[UpgradeGenerator.UpgradeOption] = []
 func _ready() -> void:
 	# 初期状態は非表示
 	visible = false
+	panel_container.visible = false
 
 	# process_mode設定（PAUSED時も動作）
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -44,6 +45,7 @@ func show_options(options: Array[UpgradeGenerator.UpgradeOption]) -> void:
 
 	# パネルを表示
 	visible = true
+	panel_container.visible = true
 
 
 ## ボタンテキストを更新
@@ -86,4 +88,5 @@ func _select_option(index: int) -> void:
 
 	# パネルを非表示
 	visible = false
+	panel_container.visible = false
 	current_options.clear()

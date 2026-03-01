@@ -27,11 +27,13 @@ func _ready() -> void:
 ## タイトル画面を表示
 func show_title() -> void:
 	visible = true
+	panel_container.visible = true
 
 
 ## タイトル画面を非表示
 func hide_title() -> void:
 	visible = false
+	panel_container.visible = false
 
 
 ## スタートボタン押下
