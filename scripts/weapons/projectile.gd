@@ -18,10 +18,7 @@ var attack_type: int = 0:  # 武器タイプを保持
 	set(value):
 		attack_type = value
 		_update_visual()
-var weapon_icon: Texture2D = null:  # 武器アイコンテクスチャ（弾丸表示用）
-	set(value):
-		weapon_icon = value
-		_update_visual()
+var weapon_icon: Texture2D = null  # 武器アイコンテクスチャ（弾丸表示用）
 var pierce_count: int = 0  # 貫通回数（0=貫通なし、-1=無限貫通）
 var _elapsed_time: float = 0.0
 var _hit_enemies: Array = []  # 既にヒットした敵を記録（連続ヒット防止）
