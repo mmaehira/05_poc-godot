@@ -18,6 +18,10 @@ var attack_type: int = 0:  # 武器タイプを保持
 	set(value):
 		attack_type = value
 		_update_visual()
+var weapon_icon: Texture2D = null:  # 武器アイコンテクスチャ（弾丸表示用）
+	set(value):
+		weapon_icon = value
+		_update_visual()
 var pierce_count: int = 0  # 貫通回数（0=貫通なし、-1=無限貫通）
 var _elapsed_time: float = 0.0
 var _hit_enemies: Array = []  # 既にヒットした敵を記録（連続ヒット防止）
@@ -40,6 +44,7 @@ func initialize(pos: Vector2, dir: Vector2, dmg: int) -> void:
 	lifetime = 5.0
 	is_homing = false
 	attack_type = 0
+	weapon_icon = null
 	pierce_count = 0
 	_elapsed_time = 0.0
 	_distance_traveled = 0.0
@@ -195,6 +200,7 @@ func _split() -> void:
 		var child = PoolManager.spawn_projectile(global_position, child_dir, child_damage)
 		if child:
 			child.speed = speed
+			child.weapon_icon = weapon_icon
 			child.attack_type = attack_type
 			child.split_count = split_count
 			child.split_generation = split_generation - 1
@@ -313,11 +319,10 @@ func _return_to_pool() -> void:
 
 
 func _update_visual() -> void:
-	# Visualノードを取得
 	var visual = get_node_or_null("Visual")
-	if visual == null or not visual.has_method("get_visual_type_from_weapon"):
+	if visual == null or not visual.has_method("setup"):
 		return
 
-	# 武器タイプに応じてビジュアルを設定
 	const ProjectileVisual = preload("res://scripts/weapons/projectile_visual.gd")
-	visual.visual_type = ProjectileVisual.get_visual_type_from_weapon(attack_type)
+	var vtype = ProjectileVisual.get_visual_type_from_weapon(attack_type)
+	visual.setup(weapon_icon, vtype)

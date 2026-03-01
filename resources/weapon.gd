@@ -18,6 +18,7 @@ enum AttackType {
 
 @export var weapon_name: String = ""
 @export var description: String = ""
+@export var icon: Texture2D
 @export var base_damage: int = 10
 @export var attack_interval: float = 1.0
 @export var attack_type: AttackType = AttackType.MELEE_CIRCLE

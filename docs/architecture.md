@@ -463,6 +463,24 @@ class_name Player extends CharacterBody2D
 **理由**: データ駆動設計、パッシブ武器対応
 **代替案**: Node継承のみ → 却下（拡張性不足）
 
+## ADR-004: テクスチャはGDScriptで動的ロード
+**日付**: 2026-02-28
+**状態**: 承認済み
+**決定**: 画像テクスチャは`.tscn`の`ext_resource`ではなく、GDScriptの`load()`で動的にロードする
+**理由**: Godotの`.import`ファイル生成タイミングに依存せず、環境差異（Devcontainer/Windows）でも確実にロード可能。`load()`失敗時は`Image.load()` + `ImageTexture.create_from_image()`でフォールバックする
+**パターン**:
+```gdscript
+var tex = load("res://assets/path/to/image.png")
+if tex == null:
+    var image = Image.new()
+    var error = image.load(ProjectSettings.globalize_path("res://assets/path/to/image.png"))
+    if error != OK:
+        push_error("Failed to load texture")
+        return
+    tex = ImageTexture.create_from_image(image)
+```
+**代替案**: `.tscn`の`ext_resource`で参照 → 却下（`.import`未生成時にロード失敗）
+
 ---
 
 # 20. 技術的参考資料

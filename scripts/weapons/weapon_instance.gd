@@ -65,6 +65,9 @@ func initialize(weapon: Weapon, level: int, player: Node) -> void:
 	current_level = level
 	owner_player = player
 
+	# 初撃を早めに発生させる（attack_intervalの80%から開始）
+	_attack_timer = weapon.attack_interval * 0.8
+
 	# BARRIER_DOT武器は初回から展開
 	if weapon.attack_type == Weapon.AttackType.BARRIER_DOT:
 		_initialize_barrier()
@@ -211,6 +214,7 @@ func _spawn_rush_projectile(pos: Vector2, dir: Vector2, dmg: int, expl_radius: f
 	var projectile = PoolManager.spawn_projectile(pos, dir, dmg)
 	if projectile != null:
 		projectile.speed = weapon_data.rush_speed
+		projectile.weapon_icon = weapon_data.icon
 		projectile.attack_type = weapon_data.attack_type
 		projectile.explosion_radius = expl_radius
 		_spawn_muzzle_flash(pos)
@@ -255,6 +259,7 @@ func _attack_split_shot() -> void:
 	var projectile = PoolManager.spawn_projectile(owner_player.global_position, direction, damage)
 	if projectile:
 		projectile.speed = weapon_data.projectile_speed
+		projectile.weapon_icon = weapon_data.icon
 		projectile.attack_type = weapon_data.attack_type
 		projectile.split_count = weapon_data.split_count + (1 if current_level >= 2 else 0) + (1 if current_level >= 4 else 0)
 		projectile.split_generation = 3 if current_level >= 5 else (2 if current_level >= 3 else 1)
@@ -413,6 +418,7 @@ func _fire_shotgun_burst(direction: Vector2, damage: int, count: int) -> void:
 		var proj = PoolManager.spawn_projectile(owner_player.global_position, dir, damage)
 		if proj:
 			proj.speed = weapon_data.projectile_speed
+			proj.weapon_icon = weapon_data.icon
 			proj.attack_type = weapon_data.attack_type
 			proj.lifetime = 0.6  # 短射程
 
@@ -475,6 +481,7 @@ func _spawn_projectile(pos: Vector2, dir: Vector2, dmg: int, homing: bool, pierc
 	if projectile != null:
 		projectile.speed = weapon_data.projectile_speed
 		projectile.is_homing = homing
+		projectile.weapon_icon = weapon_data.icon
 		projectile.attack_type = weapon_data.attack_type
 		projectile.pierce_count = pierce
 		_spawn_muzzle_flash(pos)
@@ -560,20 +567,20 @@ func _spawn_melee_effect(pos: Vector2, radius: float) -> void:
 	var particles = CPUParticles2D.new()
 	particles.emitting = true
 	particles.one_shot = true
-	particles.amount = 12
-	particles.lifetime = 0.3
+	particles.amount = 24
+	particles.lifetime = 0.5
 	particles.explosiveness = 1.0
 	particles.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
 	particles.emission_sphere_radius = radius * 0.5
 	particles.direction = Vector2.ZERO
 	particles.spread = 180.0
-	particles.initial_velocity_min = 80.0
-	particles.initial_velocity_max = 120.0
-	particles.damping_min = 200.0
-	particles.damping_max = 300.0
-	particles.scale_amount_min = 2.0
-	particles.scale_amount_max = 4.0
-	particles.color = Color(0.0, 0.9, 1.0, 0.8)  # シアン
+	particles.initial_velocity_min = 60.0
+	particles.initial_velocity_max = 150.0
+	particles.damping_min = 150.0
+	particles.damping_max = 250.0
+	particles.scale_amount_min = 3.0
+	particles.scale_amount_max = 6.0
+	particles.color = Color(0.0, 0.9, 1.0, 0.9)  # シアン（より不透明に）
 	particles.gravity = Vector2.ZERO
 
 	var game_scene = owner_player.get_parent()
@@ -581,7 +588,7 @@ func _spawn_melee_effect(pos: Vector2, radius: float) -> void:
 		game_scene.add_child(particles)
 		particles.global_position = pos
 		var timer = Timer.new()
-		timer.wait_time = 0.5
+		timer.wait_time = 0.8
 		timer.one_shot = true
 		timer.timeout.connect(particles.queue_free)
 		particles.add_child(timer)

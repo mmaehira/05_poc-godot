@@ -17,6 +17,7 @@ script/source = "extends Node2D
 var elapsed_time: float = 0.0
 var is_game_running: bool = false
 
+@onready var background: Sprite2D = $Background
 @onready var world_node: Node2D = $WorldNode
 @onready var player: Node = $Player
 @onready var hud: Node = $HUD
@@ -29,6 +30,9 @@ var is_game_running: bool = false
 @onready var pause_menu: Node = $PauseMenu
 
 func _ready() -> void:
+	# 背景テクスチャをロード
+	_load_background()
+
 	# PoolManagerにworld_nodeを設定
 	PoolManager.set_world_node(world_node)
 
@@ -70,6 +74,15 @@ func _ready() -> void:
 	_show_title_screen()
 
 func _process(delta: float) -> void:
+	# 背景をプレイヤーに追従（ビューポート分だけ動的にタイリング）
+	if background != null and background.texture != null and player != null:
+		background.position = player.global_position
+		var view_size = get_viewport_rect().size
+		var margin = Vector2(200, 200)
+		var region_size = view_size + margin * 2
+		var pos = player.global_position
+		background.region_rect = Rect2(pos - region_size / 2, region_size)
+
 	# ゲーム時間のカウント（ボス戦中はタイマー停止）
 	if is_game_running and GameManager.current_state == GameManager.GameState.PLAYING:
 		if BossManager.current_boss == null:
@@ -212,10 +225,28 @@ func _start_game() -> void:
 
 	# GameManager経由でゲーム開始（LevelSystem.reset, PoolManager.clear含む）
 	GameManager.start_game()
+
+## 背景テクスチャをロード
+func _load_background() -> void:
+	if background == null:
+		return
+	var bg_texture = load(\"res://assets/backgrounds/stage_background.png\")
+	if bg_texture == null:
+		var image = Image.new()
+		var error = image.load(ProjectSettings.globalize_path(\"res://assets/backgrounds/stage_background.png\"))
+		if error != OK:
+			push_error(\"[GameScene] Failed to load background texture\")
+			return
+		bg_texture = ImageTexture.create_from_image(image)
+	background.texture = bg_texture
 "
 
 [node name="GameScene" type="Node2D"]
 script = SubResource("GDScript_1")
+
+[node name="Background" type="Sprite2D" parent="."]
+texture_repeat = 3
+region_enabled = true
 
 [node name="WorldNode" type="Node2D" parent="."]
 
